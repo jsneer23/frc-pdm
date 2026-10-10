@@ -1,22 +1,29 @@
 // src/features/parts/PartRequestForm.tsx
 import { useState } from 'react'
-import { MACHINES, MATERIALS, type MachineId, type MaterialId } from './constants'
+import { MACHINES, MATERIALS, type MaterialThickness, type MachineId, type MaterialId, MATERIAL_THICKNESSES } from './constants'
 
 export function PartRequestForm() {
   const [machine, setMachine] = useState<MachineId>('co2_laser')
+  const [partName, setPartName] = useState('')
   const [material, setMaterial] = useState<MaterialId | ''>('')
-  const [thickness, setThickness] = useState('')
+  const [thickness, setThickness] = useState<MaterialThickness | ''>('')
   const [quantity, setQuantity] = useState('1')
 
   // Derived. Not state.
   const machineDef = MACHINES[machine]
   const availableMaterials = machineDef.materials
+  const availableThicknesses = material ? MATERIAL_THICKNESSES[material] ?? [] : []
 
   function handleMachineChange(next: MachineId) {
     setMachine(next)
     // Clear the material if the new machine cannot use it.
     const stillValid = MACHINES[next].materials.includes(material as never)
     if (!stillValid) setMaterial('')
+  }
+
+  function handleMaterialChange(next: MaterialId | '') {
+    setMaterial(next)
+    setThickness('')
   }
 
   return (
@@ -34,10 +41,20 @@ export function PartRequestForm() {
       </label>
 
       <label className="flex flex-col gap-1">
+        <span>Part Name</span>
+        <input
+          type="text"
+          value={partName}
+          placeholder="Part Name Required"
+          onChange={(e) => setPartName(e.target.value)}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
         <span>Material</span>
         <select
           value={material}
-          onChange={(e) => setMaterial(e.target.value as MaterialId)}
+          onChange={(e) => handleMaterialChange(e.target.value as MaterialId)}
         >
           <option value="">Select a material</option>
           {availableMaterials.map((id) => (
@@ -49,12 +66,15 @@ export function PartRequestForm() {
       {machineDef.needsThickness && (
         <label className="flex flex-col gap-1">
           <span>Thickness (in)</span>
-          <input
-            type="number"
-            step="0.001"
+          <select
             value={thickness}
             onChange={(e) => setThickness(e.target.value)}
-          />
+          >
+            <option value="">Select a thickness</option>
+            {availableThicknesses.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
         </label>
       )}
 

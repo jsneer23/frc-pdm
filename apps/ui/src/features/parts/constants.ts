@@ -39,3 +39,13 @@ type MachineDef = {
 }
 
 export type MachineId = keyof typeof MACHINES
+
+export const MATERIAL_THICKNESSES: Partial<Record<MaterialId, readonly number[]>> = {
+  srpp: [0.25],
+  polycarbonate: [0.118, 0.196, 0.236],
+  wood: [], // TODO: measue
+  al6061: [0.125, 0.1875, 0.25],
+  al7075: [], // TODO: measue
+  al5052: [], // TODO: measue
+  // ...
+}
