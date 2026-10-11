@@ -40,7 +40,7 @@ type MachineDef = {
 
 export type MachineId = keyof typeof MACHINES
 
-export const MATERIAL_THICKNESSES: Partial<Record<MaterialId, readonly number[]>> = {
+export const MATERIAL_THICKNESS: Partial<Record<MaterialId, readonly number[]>> = {
   srpp: [0.25],
   polycarbonate: [0.118, 0.196, 0.236],
   wood: [], // TODO: measue
@@ -49,3 +49,5 @@ export const MATERIAL_THICKNESSES: Partial<Record<MaterialId, readonly number[]>
   al5052: [], // TODO: measue
   // ...
 }
+
+export type MaterialThickness = keyof typeof MATERIAL_THICKNESS
