@@ -1,6 +1,4 @@
 {
-  "editor.formatOnSave": true,
-  "biome.configurationPath": "./apps/ui/biome.json",
   "files.watcherExclude": {
     "**/routeTree.gen.ts": true
   },
@@ -37,4 +35,8 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit"
   },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "git.openRepositoryInParentFolders": "always",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
 }
