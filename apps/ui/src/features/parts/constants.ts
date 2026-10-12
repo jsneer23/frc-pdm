@@ -49,5 +49,3 @@ export const MATERIAL_THICKNESS: Partial<Record<MaterialId, readonly number[]>> 
   al5052: [], // TODO: measue
   // ...
 }
-
-export type MaterialThickness = keyof typeof MATERIAL_THICKNESS
