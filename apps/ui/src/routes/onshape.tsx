@@ -1,16 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PartRequestForm } from '../features/parts/PartRequestForm'
+import { createFileRoute } from "@tanstack/react-router";
+import { PartRequestPage } from "../features/PartRequestPage";
 
-export const Route = createFileRoute('/onshape')({
-  component: OnshapePanel,
-})
-
+export const Route = createFileRoute("/onshape")({
+	component: OnshapePanel,
+});
 
 function OnshapePanel() {
-  return (
-    <div className="p-4">
-      <h1 className="text-lg font-semibold mb-4">New Part Request</h1>
-      <PartRequestForm />
-    </div>
-  )
+	return (
+		<div className="p-4">
+			<PartRequestPage />
+		</div>
+	);
 }
