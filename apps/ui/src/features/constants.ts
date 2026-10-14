@@ -70,14 +70,16 @@ export const MACHINES = {
 	},
 } as const satisfies Record<string, MachineDef>;
 
-export type SelectionKind = "face" | "part";
+export type SelectionRequest = "face" | "part";
+export type SelectionType = "ENTITY" | "BODY";
+export type EntityType = "FACE" | "undefined";
 
 type MachineDef = {
 	label: string;
 	file_type: string;
 	materials: readonly MaterialId[];
 	needsThickness: boolean;
-	selection?: SelectionKind;
+	selection?: SelectionRequest;
 };
 
 export type MachineId = keyof typeof MACHINES;

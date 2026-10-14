@@ -2,6 +2,8 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 
+import "./features/onshape/onshapeClient";
+
 const router = createRouter({
 	routeTree,
 	basepath: import.meta.env.BASE_URL,
