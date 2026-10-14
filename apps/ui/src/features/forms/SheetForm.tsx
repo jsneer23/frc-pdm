@@ -60,6 +60,7 @@ export function SheetForm() {
 	const [material, setMaterial] = useState<MaterialId | "">("");
 	const [thickness, setThickness] = useState("");
 	const [quantity, setQuantity] = useState("1");
+	const [weightLb, setWeightLb] = useState("");
 	const [errors, setErrors] = useState<FormErrors>({});
 
 	const machineDef = MACHINES[machine];
@@ -97,14 +98,13 @@ export function SheetForm() {
 		const name = partName.trim();
 		const subsystemName = subsystem.trim();
 		const qty = Number(quantity);
+		const weight = Number(weightLb);
 
 		if (!selection) {
 			nextErrors.selection =
 				machineDef.selection === "face"
 					? "Select a face in Onshape."
 					: "Select a part in Onshape.";
-		} else if (selection.weightLb == null) {
-			nextErrors.weight = "No weight found. Set the part material in Onshape.";
 		}
 
 		if (name === "") nextErrors.partName = "Enter a part name.";
@@ -114,6 +114,10 @@ export function SheetForm() {
 			nextErrors.thickness = "Select a thickness.";
 		if (!Number.isInteger(qty) || qty < 1)
 			nextErrors.quantity = "Enter a valid quantity.";
+		if (!(weight > 0 && weight <= 20)) {
+			nextErrors.weight =
+				"Enter valid weight. Ensure material is set and measure in Onshape.";
+		}
 
 		setErrors(nextErrors);
 		if (Object.keys(nextErrors).length > 0) return;
