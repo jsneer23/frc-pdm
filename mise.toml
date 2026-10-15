@@ -1,0 +1,13 @@
+[tools]
+supabase = "2.121.0"
+
+[tasks."gen:types"]
+description = "Generate TypeScript types from the linked Supabase database"
+run = "supabase gen types typescript --linked --schema public > apps/ui/src/lib/database.types.ts"
+
+[tasks."db:push"]
+description = "Apply migrations, then regenerate types"
+run = [
+  "supabase db push",
+  "mise run gen:types",
+]
