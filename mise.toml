@@ -1,5 +1,6 @@
 [tools]
 supabase = "2.121.0"
+pnpm = "12.11.2"
 
 [tasks."gen:types"]
 description = "Generate TypeScript types from the linked Supabase database"
@@ -11,3 +12,28 @@ run = [
   "supabase db push",
   "mise run gen:types",
 ]
+
+[tasks."pnpm:check_version"]
+description = "Get recent pnpm versions for use in pnpm:update"
+run = "mise ls-remote pnpm | grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+$' | tail -5"
+
+[tasks."pnpm:update"]
+description = "Change the pnpm version in mise.toml and package.json, then verify"
+usage = 'arg "<version>" help="The pnpm version, for example 11.2.0"'
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+v="${usage_version}"
+
+mise use "pnpm@$v"
+
+cd apps/ui
+npm pkg set packageManager="pnpm@$v"
+
+mise exec "pnpm@$v" -- pnpm install
+mise exec "pnpm@$v" -- pnpm typecheck
+mise exec "pnpm@$v" -- pnpm build
+
+echo "pnpm is now $v. Commit mise.toml, apps/ui/package.json, and the lockfile together."
+'''
