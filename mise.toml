@@ -6,6 +6,11 @@ pnpm = "12.11.2"
 description = "Generate TypeScript types from the linked Supabase database"
 run = "supabase gen types typescript --linked --schema public > apps/ui/src/lib/database.types.ts"
 
+[tasks."db:new"]
+description = "Create a new empty migration in supabase/migrations"
+usage = 'arg "<name>" help="A short snake_case description, for example add_is_admin_to_members"'
+run = 'supabase migration new "${usage_name}"'
+
 [tasks."db:push"]
 description = "Apply migrations, then regenerate types"
 run = [
