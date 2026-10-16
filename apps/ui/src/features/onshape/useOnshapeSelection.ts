@@ -33,7 +33,6 @@ export function useFakeSelection({ kind, onSelect }: Options) {
 	const [isSelecting, setIsSelecting] = useState(false);
 	const timerRef = useRef<number | null>(null);
 
-	// Stop the fake timer when the component goes away.
 	useEffect(() => {
 		return () => {
 			if (timerRef.current !== null) clearTimeout(timerRef.current);

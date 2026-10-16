@@ -132,3 +132,27 @@ export const PART_TYPES = {
 } as const satisfies Record<string, ProcessDef>;
 
 export type PartTypeId = keyof typeof PART_TYPES;
+
+export type PartRequest = {
+	document: {
+		userId: string;
+		documentId: string;
+		workspaceId: string;
+		elementId: string;
+	};
+	selection: {
+		kind: string;
+		selectionId: string;
+		microversionId: string;
+	};
+	partName: string;
+	machine: MachineId;
+	material: MaterialId;
+	thickness: number | null;
+	quantity: number;
+	weightLb: number;
+};
+
+export type PartRequestResponse =
+	| { ok: true; requestId: string }
+	| { ok: false; error: string };

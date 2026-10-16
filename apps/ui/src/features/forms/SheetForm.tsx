@@ -23,11 +23,13 @@ import {
 	MATERIALS,
 	type MaterialId,
 	PART_TYPES,
+	type PartRequest,
 } from "../constants";
 import { QuantityField } from "../fields/QuantityField";
 import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
 import { WeightField } from "../fields/WeightField";
+import { onshapeContext } from "../onshape/onshapeClient";
 import { useOnshapeSelection } from "../onshape/useOnshapeSelection";
 
 type FormErrors = Partial<
@@ -93,7 +95,6 @@ export function SheetForm() {
 	function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
-		// Validation
 		const nextErrors: FormErrors = {};
 		const name = partName.trim();
 		const subsystemName = subsystem.trim();
@@ -122,22 +123,27 @@ export function SheetForm() {
 		setErrors(nextErrors);
 		if (Object.keys(nextErrors).length > 0) return;
 
-		// The checks above make these impossible. This line tells TypeScript.
 		if (!selection || material === "") return;
 
 		// Request
-		const request = {
+		const request: PartRequest = {
+			document: {
+				userId: onshapeContext.userId,
+				documentId: onshapeContext.documentId,
+				workspaceId: onshapeContext.workspaceId,
+				elementId: onshapeContext.elementId,
+			},
 			selection: {
-				kind: selection.kind,
-				entityId: selection.entityId,
-				partId: selection.partId,
+				kind: selection.request,
+				selectionId: selection.selectionId,
+				microversionId: selection.microversionId,
 			},
 			partName: name,
 			machine,
 			material,
 			thickness: thicknessRequired ? Number(thickness) : null,
 			quantity: qty,
-			weightLb: selection.weightLb,
+			weightLb: weight,
 		};
 
 		console.log(request);
@@ -159,16 +165,13 @@ export function SheetForm() {
 			// fill the name only if the user did not change it.
 			setPartName((prev) =>
 				prev.trim() === "" || prev === lastOnshapeName.current
-					? next.partName
+					? next.selectionId
 					: prev,
 			);
-			lastOnshapeName.current = next.partName;
+			lastOnshapeName.current = next.selectionId;
 			clearError("selection", "partName", "weight");
 		},
 	});
-
-	const weightText =
-		selection?.weightLb != null ? `${selection.weightLb.toFixed(2)} lb` : "";
 
 	return (
 		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
@@ -241,7 +244,14 @@ export function SheetForm() {
 						)}
 					</div>
 					<div className="grid grid-cols-2 items-start gap-4">
-						<WeightField value={weightText} error={errors.weight} />
+						<WeightField
+							value={weightLb}
+							onChange={(value) => {
+								setWeightLb(value);
+								clearError("weight");
+							}}
+							error={errors.weight}
+						/>
 
 						<QuantityField
 							value={quantity}

@@ -1,6 +1,7 @@
 const params = new URLSearchParams(window.location.search);
 
 export const onshapeContext = {
+	userId: params.get("userId") ?? "",
 	documentId: params.get("documentId") ?? "",
 	workspaceId: params.get("workspaceId") ?? "",
 	elementId: params.get("elementId") ?? "",
