@@ -9,7 +9,7 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
-import type { SelectionKind } from "../constants";
+import type { SelectionRequest } from "../constants";
 import type { OnshapeSelection } from "../onshape/useOnshapeSelection";
 import { StepHeader } from "./StepHeader";
 
@@ -29,12 +29,12 @@ const SELECTION_TEXT = {
 		label: "Part",
 	},
 } satisfies Record<
-	SelectionKind,
+	SelectionRequest,
 	Record<"title" | "description" | "action" | "waiting" | "label", string>
 >;
 
 type SelectionCardProps = {
-	kind: SelectionKind;
+	kind: SelectionRequest;
 	selection: OnshapeSelection | null;
 	isSelecting: boolean;
 	onStart: () => void;
@@ -91,7 +91,7 @@ export function OnshapeSelectionCard({
 						{text.label}
 					</ItemMedia>
 					<ItemContent>
-						<ItemTitle className="truncate">{selection.partName}</ItemTitle>
+						<ItemTitle className="truncate">{selection.selectionId}</ItemTitle>
 					</ItemContent>
 					<ItemActions>
 						<Button type="button" variant="ghost" size="sm" onClick={onStart}>
