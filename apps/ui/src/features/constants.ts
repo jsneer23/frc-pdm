@@ -20,21 +20,21 @@ export const MACHINES = {
 		file_type: "dxf",
 		materials: ["srpp", "polycarbonate", "wood"],
 		needsThickness: true,
-		selection: "ENTITY",
+		selection: "face",
 	},
 	router: {
 		label: "Router",
 		file_type: "step",
 		materials: ["srpp", "polycarbonate", "wood", "al6061", "al7075", "al5052"],
 		needsThickness: true,
-		selection: "BODY",
+		selection: "body",
 	},
 	printer: {
 		label: "3D Printer",
 		file_type: "step",
 		materials: ["tpu", "petg", "pla", "nylon", "onyx"],
 		needsThickness: false,
-		selection: "BODY",
+		selection: "body",
 	},
 	lathe: {
 		label: "Lathe",
@@ -44,7 +44,7 @@ export const MACHINES = {
 	},
 } as const satisfies Record<string, MachineDef>;
 
-export type SelectionType = "ENTITY" | "BODY";
+export type SelectionType = "face" | "body";
 export type EntityType = "FACE" | "undefined";
 
 type MachineDef = {

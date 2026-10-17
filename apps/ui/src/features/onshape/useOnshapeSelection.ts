@@ -45,7 +45,7 @@ export function useFakeSelection({ kind, onSelect }: Options) {
 			const next: OnshapeSelection = {
 				selectionType: kind,
 				selectionId: "S2H2I_TEST",
-				entityType: kind === "ENTITY" ? "FACE" : "undefined",
+				entityType: kind === "face" ? "FACE" : "undefined",
 				microversionId: "55071a44bda7eb00b1963ce7",
 			};
 			setSelection(next);
@@ -110,7 +110,7 @@ function useRealSelection({ kind, onSelect }: Options) {
 		requestIdRef.current = id;
 		postToOnshape("requestSelection", {
 			messageId: id,
-			entityTypeSpecifier: [kind === "BODY" ? "BODY" : "FACE"],
+			entityTypeSpecifier: [kind.toUpperCase()],
 			requiredSelectionCount: 1,
 		});
 	}

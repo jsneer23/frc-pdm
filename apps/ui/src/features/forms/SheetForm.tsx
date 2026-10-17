@@ -124,7 +124,7 @@ export function SheetForm() {
 
 		if (!selection) {
 			nextErrors.selection =
-				machineDef.selection === "ENTITY"
+				machineDef.selection === "face"
 					? "Select a face in Onshape."
 					: "Select a part in Onshape.";
 		}
