@@ -1,7 +1,7 @@
 export const MACHINES = {
 	saw: {
 		label: "Chop Saw",
-		file_type: "DWG",
+		file_type: "dwg",
 		materials: [
 			"tube_2x1_7075",
 			"tube_2x1_punched",
@@ -17,34 +17,33 @@ export const MACHINES = {
 	},
 	co2_laser: {
 		label: "CO2 Laser",
-		file_type: "DXF",
+		file_type: "dxf",
 		materials: ["srpp", "polycarbonate", "wood"],
 		needsThickness: true,
-		selection: "face",
+		selection: "ENTITY",
 	},
 	router: {
 		label: "Router",
-		file_type: "STEP",
+		file_type: "step",
 		materials: ["srpp", "polycarbonate", "wood", "al6061", "al7075", "al5052"],
 		needsThickness: true,
-		selection: "part",
+		selection: "BODY",
 	},
 	printer: {
 		label: "3D Printer",
-		file_type: "STEP",
+		file_type: "step",
 		materials: ["tpu", "petg", "pla", "nylon", "onyx"],
 		needsThickness: false,
-		selection: "part",
+		selection: "BODY",
 	},
 	lathe: {
 		label: "Lathe",
-		file_type: "DWG",
+		file_type: "dwg",
 		materials: ["hex_0500_159"],
 		needsThickness: false,
 	},
 } as const satisfies Record<string, MachineDef>;
 
-export type SelectionRequest = "face" | "part";
 export type SelectionType = "ENTITY" | "BODY";
 export type EntityType = "FACE" | "undefined";
 
@@ -53,7 +52,7 @@ type MachineDef = {
 	file_type: string;
 	materials: readonly string[];
 	needsThickness: boolean;
-	selection?: SelectionRequest;
+	selection?: SelectionType;
 };
 
 export type MachineId = keyof typeof MACHINES;

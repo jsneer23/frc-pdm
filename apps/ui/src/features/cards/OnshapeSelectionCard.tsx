@@ -9,19 +9,19 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
-import type { SelectionRequest } from "../constants";
+import type { SelectionType } from "../constants";
 import type { OnshapeSelection } from "../onshape/useOnshapeSelection";
 import { StepHeader } from "./StepHeader";
 
 const SELECTION_TEXT = {
-	face: {
+	ENTITY: {
 		title: "Select a planar face",
 		description: "Choose the face to export for 2D machining.",
 		action: "Select face",
 		waiting: "Click a planar face in Onshape…",
 		label: "Face",
 	},
-	part: {
+	BODY: {
 		title: "Select a part",
 		description: "Choose the part to export for 3D machining.",
 		action: "Select part",
@@ -29,12 +29,12 @@ const SELECTION_TEXT = {
 		label: "Part",
 	},
 } satisfies Record<
-	SelectionRequest,
+	SelectionType,
 	Record<"title" | "description" | "action" | "waiting" | "label", string>
 >;
 
 type SelectionCardProps = {
-	kind: SelectionRequest;
+	kind: SelectionType;
 	selection: OnshapeSelection | null;
 	isSelecting: boolean;
 	onStart: () => void;

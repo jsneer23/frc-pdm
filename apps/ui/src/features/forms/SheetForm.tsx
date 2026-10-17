@@ -124,7 +124,7 @@ export function SheetForm() {
 
 		if (!selection) {
 			nextErrors.selection =
-				machineDef.selection === "face"
+				machineDef.selection === "ENTITY"
 					? "Select a face in Onshape."
 					: "Select a part in Onshape.";
 		}
@@ -155,7 +155,7 @@ export function SheetForm() {
 				elementId: onshapeContext.elementId,
 			},
 			selection: {
-				kind: selection.request,
+				kind: selection.entityType === "FACE" ? "face" : "body",
 				selectionId: selection.selectionId,
 				microversionId: selection.microversionId,
 			},

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { EntityType, SelectionRequest, SelectionType } from "../constants";
+import type { EntityType, SelectionType } from "../constants";
 
 import { isInOnshape, onOnshapeMessage, postToOnshape } from "./onshapeClient";
 
 export type OnshapeSelection = {
-	request: SelectionRequest;
 	selectionType: SelectionType;
 	selectionId: string; // face ID or part ID
 	entityType: EntityType;
@@ -24,7 +23,7 @@ type RequestedSelectionMessage = {
 };
 
 type Options = {
-	kind: SelectionRequest;
+	kind: SelectionType;
 	onSelect: (selection: OnshapeSelection) => void;
 };
 
@@ -44,10 +43,9 @@ export function useFakeSelection({ kind, onSelect }: Options) {
 
 		timerRef.current = window.setTimeout(() => {
 			const next: OnshapeSelection = {
-				request: kind,
-				selectionType: kind === "face" ? "ENTITY" : "BODY",
+				selectionType: kind,
 				selectionId: "S2H2I_TEST",
-				entityType: kind === "face" ? "FACE" : "undefined",
+				entityType: kind === "ENTITY" ? "FACE" : "undefined",
 				microversionId: "55071a44bda7eb00b1963ce7",
 			};
 			setSelection(next);
@@ -96,7 +94,6 @@ function useRealSelection({ kind, onSelect }: Options) {
 			if (!first) return;
 
 			const next: OnshapeSelection = {
-				request: first.selectionType === "BODY" ? "part" : "face",
 				selectionType: first.selectionType,
 				selectionId: first.selectionId,
 				entityType: first.entityType,
@@ -113,7 +110,7 @@ function useRealSelection({ kind, onSelect }: Options) {
 		requestIdRef.current = id;
 		postToOnshape("requestSelection", {
 			messageId: id,
-			entityTypeSpecifier: [kind === "face" ? "FACE" : "BODY"],
+			entityTypeSpecifier: [kind === "BODY" ? "BODY" : "FACE"],
 			requiredSelectionCount: 1,
 		});
 	}
