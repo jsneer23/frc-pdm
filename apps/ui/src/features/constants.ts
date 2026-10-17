@@ -1,29 +1,3 @@
-export const MATERIALS = {
-	srpp: "SRPP",
-	polycarbonate: "Polycarbonate",
-	wood: "Plywood",
-	al6061: "Aluminum 6061",
-	al7075: "Aluminum 7075",
-	al5052: "Aluminum 5052",
-	tpu: "TPU (95A)",
-	petg: "PETG",
-	pla: "PLA+",
-	nylon: "NYLON",
-	onyx: "Onyx (Markforged Only)",
-	tube_2x1_7075: "2x1 7075 (black)",
-	tube_2x1_punched: "2x1 Punched",
-	tube_2x1_blank: "2x1 Blank",
-	tube_1x1_punched: "1x1 Punched",
-	tube_1x1_blank: "1x1 Blank",
-	maxtube_2x1: "2x1 Maxtube",
-	maxtube_1x1: "1x1 Maxtube",
-	alu_maxspline: "Maxspline",
-	poly_maxspline: "Polycarbonate Maxspline",
-	hex_0500_159: '1/2" Hex (WCP)',
-} as const;
-
-export type MaterialId = keyof typeof MATERIALS;
-
 export const MACHINES = {
 	saw: {
 		label: "Chop Saw",
@@ -77,12 +51,13 @@ export type EntityType = "FACE" | "undefined";
 type MachineDef = {
 	label: string;
 	file_type: string;
-	materials: readonly MaterialId[];
+	materials: readonly string[];
 	needsThickness: boolean;
 	selection?: SelectionRequest;
 };
 
 export type MachineId = keyof typeof MACHINES;
+export type MaterialId = (typeof MACHINES)[MachineId]["materials"][number];
 
 export const MATERIAL_THICKNESS: Partial<
 	Record<MaterialId, readonly number[]>

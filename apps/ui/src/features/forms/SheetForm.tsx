@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { type MaterialRow, materialsQueryOptions } from "#/lib/queries";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import {
@@ -20,7 +22,6 @@ import { PartDetailsCard } from "../cards/PartDetailsCard";
 import {
 	MACHINES,
 	MATERIAL_THICKNESS,
-	MATERIALS,
 	type MaterialId,
 	PART_TYPES,
 	type PartRequest,
@@ -53,7 +54,27 @@ const MACHINE_ITEMS = PART_TYPES.sheet.machines.map((id) => ({
 	file_type: MACHINES[id].file_type,
 }));
 
+// exchange codes for labels for use in components
+// defined outside component so it only runs once per
+// db fetch and not once per render
+function exchangeMaterialLabel(rows: MaterialRow[]) {
+	return rows.map((row) => ({ value: row.code, label: row.label }));
+}
+
 export function SheetForm() {
+	// grab list of all material codes and labels from db
+	const {
+		data: materialItems,
+		isPending,
+		isError,
+	} = useQuery({ ...materialsQueryOptions, select: exchangeMaterialLabel });
+
+	// put db materials to a new Map with key,value pairs (code, label)
+	// this computes every render but materials list is small
+	const labels = new Map(
+		materialItems?.map((row) => [row.value, row.label] as const),
+	);
+
 	const [machine, setMachine] = useState<SheetMachineId>(
 		PART_TYPES.sheet.machines[0],
 	);
@@ -206,8 +227,9 @@ export function SheetForm() {
 						<Field>
 							<FieldLabel htmlFor="material">Material</FieldLabel>
 							<Select
-								items={MATERIALS}
+								items={materialItems}
 								value={material}
+								disabled={isPending}
 								onValueChange={(value) => {
 									if (value) handleMaterialChange(value as MaterialId);
 								}}
@@ -222,12 +244,14 @@ export function SheetForm() {
 								<SelectContent>
 									{availableMaterials.map((id) => (
 										<SelectItem key={id} value={id}>
-											{MATERIALS[id]}
+											{labels.get(id) ?? id}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
-							<FieldError>{errors.material}</FieldError>
+							<FieldError>
+								{isError ? "Couldn't load materials." : errors.material}
+							</FieldError>
 						</Field>
 
 						{showThickness && (
