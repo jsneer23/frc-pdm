@@ -13,7 +13,7 @@ import { StepHeader } from "./StepHeader";
 type MachineOption<T extends string> = {
 	value: T;
 	label: string;
-	file_type: string;
+	file_format: string;
 };
 
 type MachineCardProps<T extends string> = {
@@ -53,8 +53,10 @@ export function MachineSelectionCard<T extends string>({
 						<Field orientation="horizontal">
 							<FieldContent>
 								<FieldTitle>{option.label}</FieldTitle>
-								{option.file_type && (
-									<FieldDescription>{option.file_type}</FieldDescription>
+								{option.file_format && (
+									<FieldDescription>
+										{option.file_format.toUpperCase()}
+									</FieldDescription>
 								)}
 							</FieldContent>
 							<RadioGroupItem

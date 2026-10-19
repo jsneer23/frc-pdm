@@ -1,66 +1,9 @@
-export const MACHINES = {
-	saw: {
-		label: "Chop Saw",
-		file_type: "dwg",
-		materials: [
-			"tube_2x1_7075",
-			"tube_2x1_punched",
-			"tube_2x1_blank",
-			"tube_1x1_punched",
-			"tube_1x1_blank",
-			"maxtube_2x1",
-			"maxtube_1x1",
-			"alu_maxspline",
-			"poly_maxspline",
-		],
-		needsThickness: true,
-	},
-	co2_laser: {
-		label: "CO2 Laser",
-		file_type: "dxf",
-		materials: ["srpp", "polycarbonate", "wood"],
-		needsThickness: true,
-		selection: "face",
-	},
-	router: {
-		label: "Router",
-		file_type: "step",
-		materials: ["srpp", "polycarbonate", "wood", "al6061", "al7075", "al5052"],
-		needsThickness: true,
-		selection: "body",
-	},
-	printer: {
-		label: "3D Printer",
-		file_type: "step",
-		materials: ["tpu", "petg", "pla", "nylon", "onyx"],
-		needsThickness: false,
-		selection: "body",
-	},
-	lathe: {
-		label: "Lathe",
-		file_type: "dwg",
-		materials: ["hex_0500_159"],
-		needsThickness: false,
-	},
-} as const satisfies Record<string, MachineDef>;
-
 export type SelectionType = "face" | "body";
 export type EntityType = "FACE" | "undefined";
 
-type MachineDef = {
-	label: string;
-	file_type: string;
-	materials: readonly string[];
-	needsThickness: boolean;
-	selection?: SelectionType;
-};
+export type MachineId = (typeof PART_TYPES)[PartTypeId]["machines"][number];
 
-export type MachineId = keyof typeof MACHINES;
-export type MaterialId = (typeof MACHINES)[MachineId]["materials"][number];
-
-export const MATERIAL_THICKNESS: Partial<
-	Record<MaterialId, readonly number[]>
-> = {
+export const MATERIAL_THICKNESS: Partial<Record<string, readonly number[]>> = {
 	srpp: [0.25],
 	polycarbonate: [0.118, 0.196, 0.236],
 	wood: [], // TODO: measue
@@ -79,7 +22,7 @@ export const MATERIAL_THICKNESS: Partial<
 type ProcessDef = {
 	label: string;
 	description: string;
-	machines: readonly MachineId[];
+	machines: string[];
 };
 
 export const PART_TYPES = {
@@ -121,7 +64,7 @@ export type PartRequest = {
 	};
 	partName: string;
 	machine: MachineId;
-	material: MaterialId;
+	material: string;
 	thickness: number | null;
 	quantity: number;
 	weightLb: number;

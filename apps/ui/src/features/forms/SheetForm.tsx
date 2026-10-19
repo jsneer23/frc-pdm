@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { type MaterialRow, materialsQueryOptions } from "#/lib/queries";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import {
@@ -16,16 +15,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	type MachineRow,
+	machinesQueryOptions,
+	materialsQueryOptions,
+} from "@/lib/queries";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
-import {
-	MACHINES,
-	MATERIAL_THICKNESS,
-	type MaterialId,
-	PART_TYPES,
-	type PartRequest,
-} from "../constants";
+import { MATERIAL_THICKNESS, PART_TYPES, type PartRequest } from "../constants";
 import { QuantityField } from "../fields/QuantityField";
 import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
@@ -48,66 +46,95 @@ type FormErrors = Partial<
 
 type SheetMachineId = (typeof PART_TYPES.sheet.machines)[number];
 
-const MACHINE_ITEMS = PART_TYPES.sheet.machines.map((id) => ({
-	value: id,
-	label: MACHINES[id].label,
-	file_type: MACHINES[id].file_type,
-}));
-
-// exchange codes for labels for use in components
+// exchange codes for labels for use in select components
 // defined outside component so it only runs once per
 // db fetch and not once per render
-function exchangeMaterialLabel(rows: MaterialRow[]) {
+function toSelectItems(rows: { code: string; label: string }[]) {
 	return rows.map((row) => ({ value: row.code, label: row.label }));
 }
 
+// select only machines used in the sheet form from the machine list fetched
+// from the db
+type SheetMachine = MachineRow & {
+	selection: NonNullable<MachineRow["selection"]>;
+};
+
+function selectSheetMachines(rows: MachineRow[]) {
+	const result = {} as Record<SheetMachineId, SheetMachine>;
+	for (const code of PART_TYPES.sheet.machines) {
+		const row = rows.find((r) => r.code === code);
+		if (!row)
+			throw new Error(`Machine "${code}" is missing from the database.`);
+		if (row.selection === null)
+			throw new Error(`Machine "${code}" has no Onshape selection type.`);
+		result[code] = { ...row, selection: row.selection };
+	}
+	return result;
+}
+
 export function SheetForm() {
+	const {
+		data: machines,
+		isPending,
+		isError,
+	} = useQuery({ ...machinesQueryOptions, select: selectSheetMachines });
+
+	if (isPending) return <p>Loading machines…</p>;
+	if (isError) return <p>Couldn't load machines.</p>;
+
+	return <SheetFormFields machines={machines} />;
+}
+
+function SheetFormFields({
+	machines,
+}: {
+	machines: Record<SheetMachineId, SheetMachine>;
+}) {
 	// grab list of all material codes and labels from db
 	const {
 		data: materialItems,
 		isPending,
 		isError,
-	} = useQuery({ ...materialsQueryOptions, select: exchangeMaterialLabel });
+	} = useQuery({ ...materialsQueryOptions, select: toSelectItems });
 
-	// put db materials to a new Map with key,value pairs (code, label)
-	// this computes every render but materials list is small
-	const labels = new Map(
-		materialItems?.map((row) => [row.value, row.label] as const),
-	);
+	const MACHINE_ITEMS = PART_TYPES.sheet.machines.map((id) => ({
+		value: id,
+		label: machines[id].label,
+		file_format: machines[id].file_format,
+	}));
 
 	const [machine, setMachine] = useState<SheetMachineId>(
 		PART_TYPES.sheet.machines[0],
 	);
 	const [partName, setPartName] = useState("");
 	const [subsystem, setSubsystem] = useState("");
-	const [material, setMaterial] = useState<MaterialId | "">("");
+	const [material, setMaterial] = useState("");
 	const [thickness, setThickness] = useState("");
 	const [quantity, setQuantity] = useState("1");
 	const [weightLb, setWeightLb] = useState("");
 	const [errors, setErrors] = useState<FormErrors>({});
 
-	const machineDef = MACHINES[machine];
+	const machineDef = machines[machine];
 	const availableMaterials = machineDef.materials;
 	const availableThicknesses = material
 		? (MATERIAL_THICKNESS[material] ?? [])
 		: [];
-	const showThickness = machineDef.needsThickness;
-	const thicknessRequired = availableThicknesses.length > 0;
+	const showThickness = availableThicknesses.length > 0;
 
 	function handleMachineChange(next: SheetMachineId) {
 		setMachine(next);
 
 		// Clear the material if the new machine cannot use it.
-		const materials: readonly MaterialId[] = MACHINES[next].materials;
-		if (material !== "" && !materials.includes(material)) {
+		const materials = machines[next].materials;
+		if (material !== "" && !materials.some((m) => m.code === material)) {
 			setMaterial("");
 			setThickness("");
 			clearError("material", "thickness");
 		}
-		if (MACHINES[next].selection !== machineDef.selection) clear();
+		if (machines[next].selection !== machineDef.selection) clear();
 	}
 
-	function handleMaterialChange(next: MaterialId | "") {
+	function handleMaterialChange(next: string) {
 		setMaterial(next);
 		setThickness("");
 		clearError("material", "thickness");
@@ -132,7 +159,7 @@ export function SheetForm() {
 		if (name === "") nextErrors.partName = "Enter a part name.";
 		if (subsystemName === "") nextErrors.subsystem = "Enter a part name.";
 		if (material === "") nextErrors.material = "Select a material.";
-		if (thicknessRequired && thickness === "")
+		if (showThickness && thickness === "")
 			nextErrors.thickness = "Select a thickness.";
 		if (!Number.isInteger(qty) || qty < 1)
 			nextErrors.quantity = "Enter a valid quantity.";
@@ -162,7 +189,7 @@ export function SheetForm() {
 			partName: name,
 			machine,
 			material,
-			thickness: thicknessRequired ? Number(thickness) : null,
+			thickness: showThickness ? Number(thickness) : null,
 			quantity: qty,
 			weightLb: weight,
 		};
@@ -231,7 +258,7 @@ export function SheetForm() {
 								value={material}
 								disabled={isPending}
 								onValueChange={(value) => {
-									if (value) handleMaterialChange(value as MaterialId);
+									if (value) handleMaterialChange(value);
 								}}
 							>
 								<SelectTrigger
@@ -242,9 +269,9 @@ export function SheetForm() {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{availableMaterials.map((id) => (
-										<SelectItem key={id} value={id}>
-											{labels.get(id) ?? id}
+									{availableMaterials.map((material) => (
+										<SelectItem key={material.code} value={material.code}>
+											{material.label}
 										</SelectItem>
 									))}
 								</SelectContent>

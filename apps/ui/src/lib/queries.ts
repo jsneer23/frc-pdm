@@ -26,3 +26,23 @@ export const materialsQueryOptions = queryOptions({
 	queryFn: ({ signal }) => fetchMaterials(signal),
 	staleTime: Infinity,
 });
+
+async function fetchMachines(signal: AbortSignal) {
+	const { data, error } = await supabase
+		.from("machines")
+		.select("code, label, file_format, selection, materials(code, label)")
+		.order("id", { referencedTable: "materials" })
+		.abortSignal(signal);
+
+	if (error) throw error;
+
+	return data;
+}
+
+export type MachineRow = Awaited<ReturnType<typeof fetchMachines>>[number];
+
+export const machinesQueryOptions = queryOptions({
+	queryKey: ["machines"],
+	queryFn: ({ signal }) => fetchMachines(signal),
+	staleTime: Infinity,
+});
