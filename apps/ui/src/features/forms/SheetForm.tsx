@@ -15,11 +15,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	type MachineRow,
-	machinesQueryOptions,
-	materialsQueryOptions,
-} from "@/lib/queries";
+import { type MachineRow, machinesQueryOptions } from "@/lib/queries";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
@@ -90,13 +86,6 @@ function SheetFormFields({
 }: {
 	machines: Record<SheetMachineId, SheetMachine>;
 }) {
-	// grab list of all material codes and labels from db
-	const {
-		data: materialItems,
-		isPending,
-		isError,
-	} = useQuery({ ...materialsQueryOptions, select: toSelectItems });
-
 	const MACHINE_ITEMS = PART_TYPES.sheet.machines.map((id) => ({
 		value: id,
 		label: machines[id].label,
@@ -157,7 +146,7 @@ function SheetFormFields({
 		}
 
 		if (name === "") nextErrors.partName = "Enter a part name.";
-		if (subsystemName === "") nextErrors.subsystem = "Enter a part name.";
+		if (subsystemName === "") nextErrors.subsystem = "Enter a subsystem name.";
 		if (material === "") nextErrors.material = "Select a material.";
 		if (showThickness && thickness === "")
 			nextErrors.thickness = "Select a thickness.";
@@ -254,9 +243,8 @@ function SheetFormFields({
 						<Field>
 							<FieldLabel htmlFor="material">Material</FieldLabel>
 							<Select
-								items={materialItems}
+								items={toSelectItems(availableMaterials)}
 								value={material}
-								disabled={isPending}
 								onValueChange={(value) => {
 									if (value) handleMaterialChange(value);
 								}}
@@ -276,9 +264,7 @@ function SheetFormFields({
 									))}
 								</SelectContent>
 							</Select>
-							<FieldError>
-								{isError ? "Couldn't load materials." : errors.material}
-							</FieldError>
+							<FieldError>{errors.material}</FieldError>
 						</Field>
 
 						{showThickness && (
