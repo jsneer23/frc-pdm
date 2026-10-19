@@ -12,7 +12,7 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "#/components/ui/card";
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PART_TYPES, type PartTypeId } from "./constants";
 import { SheetForm } from "./forms/SheetForm";
