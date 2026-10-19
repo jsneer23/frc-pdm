@@ -39,5 +39,5 @@
 	"editor.formatOnSave": true,
 	"git.openRepositoryInParentFolders": "always",
 	"js/ts.tsdk.path": "./apps/ui/node_modules/typescript/lib",
-	"biome.lsp.bin": "${userHome}/.local/share/mise/installs/biome/2.5.9/biome"
+	"biome.lsp.bin": "${userHome}/.local/share/mise/installs/biome/"
 }
