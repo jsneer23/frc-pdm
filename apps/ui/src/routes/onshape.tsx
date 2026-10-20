@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AuthGate } from "@/features/cards/AuthGateCard";
 import { PartRequestPage } from "../features/PartRequestPage";
 
 export const Route = createFileRoute("/onshape")({
@@ -8,7 +9,9 @@ export const Route = createFileRoute("/onshape")({
 function OnshapePanel() {
 	return (
 		<div className="p-4">
-			<PartRequestPage />
+			<AuthGate>
+				<PartRequestPage />
+			</AuthGate>
 		</div>
 	);
 }
