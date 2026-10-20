@@ -19,7 +19,7 @@ import { type MachineRow, machinesQueryOptions } from "@/lib/queries";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
-import { MATERIAL_THICKNESS, PART_TYPES, type PartRequest } from "../constants";
+import { PART_TYPES, type PartRequest } from "../constants";
 import { QuantityField } from "../fields/QuantityField";
 import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
@@ -105,9 +105,11 @@ function SheetFormFields({
 
 	const machineDef = machines[machine];
 	const availableMaterials = machineDef.materials;
-	const availableThicknesses = material
-		? (MATERIAL_THICKNESS[material] ?? [])
-		: [];
+	const selectedMaterial = availableMaterials.find((m) => m.code === material);
+	const availableThicknesses =
+		selectedMaterial?.stocks
+			.map((s) => s.thickness_in)
+			.filter((t): t is number => t !== null) ?? [];
 	const showThickness = availableThicknesses.length > 0;
 
 	function handleMachineChange(next: SheetMachineId) {

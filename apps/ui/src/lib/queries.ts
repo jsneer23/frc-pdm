@@ -30,8 +30,11 @@ export const materialsQueryOptions = queryOptions({
 async function fetchMachines(signal: AbortSignal) {
 	const { data, error } = await supabase
 		.from("machines")
-		.select("code, label, file_format, selection, materials(code, label)")
+		.select(
+			"code, label, file_format, selection, materials(code, label, stocks(thickness_in))",
+		)
 		.order("id", { referencedTable: "materials" })
+		.order("thickness_in", { referencedTable: "materials.stocks" })
 		.abortSignal(signal);
 
 	if (error) throw error;
