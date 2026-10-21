@@ -6,6 +6,7 @@ import {
 	RectangleHorizontal,
 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -14,6 +15,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/lib/supabase";
 import { PART_TYPES, type PartTypeId } from "./constants";
 import { SheetForm } from "./forms/SheetForm";
 
@@ -36,11 +38,36 @@ const PART_TYPE_FORMS = {
 export function PartRequestPage() {
 	const [partType, setPartType] = useState<PartTypeId>("sheet");
 
+	async function handleSignOut() {
+		const { error } = await supabase.auth.signOut({ scope: "local" });
+		if (error) {
+			console.error(error);
+		}
+	}
+
 	return (
 		<Card className="mx-auto w-full max-w-lg">
-			<CardHeader>
-				<CardTitle>FRC 5507 Onshape Part Exporter</CardTitle>
-				<CardDescription>Send a part to the production queue.</CardDescription>
+			<CardHeader className="flex items-center gap-4">
+				<img
+					src="https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png"
+					width={62}
+					alt="Team 5507"
+					className="shrink-0 rounded-lg"
+				/>
+				<div className="grid gap-1.5">
+					<CardTitle>FRC 5507 Onshape Part Exporter</CardTitle>
+					<CardDescription>
+						Send a part to the production queue.
+					</CardDescription>
+				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="ml-auto mr-6 bg-gray-100 hover:bg-destructive hover:text-white"
+					onClick={handleSignOut}
+				>
+					Sign out
+				</Button>
 			</CardHeader>
 			<CardContent>
 				<Tabs
