@@ -11,19 +11,20 @@ import {
 } from "@/components/ui/item";
 import type { SelectionType } from "../constants";
 import type { OnshapeSelection } from "../onshape/useOnshapeSelection";
+import { StepCard } from "./StepCard";
 import { StepHeader } from "./StepHeader";
 
 const SELECTION_TEXT = {
 	face: {
-		title: "Select a planar face",
-		description: "Choose the face to export for 2D machining.",
+		title: "Part Selection",
+		description: "Choose a 2D face to export.",
 		action: "Select face",
 		waiting: "Click a planar face in Onshape…",
 		label: "Face",
 	},
 	body: {
-		title: "Select a part",
-		description: "Choose the part to export for 3D machining.",
+		title: "Part Selection",
+		description: "Choose a 3D part to export.",
 		action: "Select part",
 		waiting: "Click a part in Onshape…",
 		label: "Part",
@@ -55,7 +56,7 @@ export function OnshapeSelectionCard({
 	const text = SELECTION_TEXT[kind];
 
 	return (
-		<div className="flex flex-col gap-2 rounded-lg border p-2">
+		<StepCard>
 			<StepHeader
 				step={step}
 				title={text.title}
@@ -86,8 +87,8 @@ export function OnshapeSelectionCard({
 			)}
 
 			{selection && (
-				<Item variant="muted" size="sm">
-					<ItemMedia className="text-xs font-semibold uppercase text-muted-foreground">
+				<Item variant="muted" size="sm" className="mx-2 mb-2">
+					<ItemMedia className="rounded-md bg-foreground/10 px-2 py-1 text-xs font-semibold uppercase text-muted-foreground">
 						{text.label}
 					</ItemMedia>
 					<ItemContent>
@@ -101,7 +102,7 @@ export function OnshapeSelectionCard({
 				</Item>
 			)}
 
-			{error && <FieldError className="px-4">{error}</FieldError>}
-		</div>
+			{error && <FieldError className="px-4 pb-2">{error}</FieldError>}
+		</StepCard>
 	);
 }

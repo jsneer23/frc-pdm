@@ -41,7 +41,7 @@ export function PartRequestPage() {
 	}
 
 	return (
-		<Card className="mx-auto w-full max-w-lg">
+		<Card className="mx-auto w-full max-w-lg gap-4">
 			<BrandHeader
 				description={"Send a part to the production queue."}
 				action={
@@ -58,6 +58,7 @@ export function PartRequestPage() {
 			<CardContent>
 				<Tabs
 					value={partType}
+					className="gap-4"
 					onValueChange={(value) => setPartType(value as PartTypeId)}
 				>
 					<TabsList

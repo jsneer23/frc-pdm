@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CardFooter } from "@/components/ui/card";
 import {
 	Field,
 	FieldError,
@@ -102,6 +101,7 @@ function SheetFormFields({
 	const [quantity, setQuantity] = useState("1");
 	const [weightLb, setWeightLb] = useState("");
 	const [errors, setErrors] = useState<FormErrors>({});
+	const lastSelectionId = useRef<string | null>(null);
 
 	const machineDef = machines[machine];
 	const availableMaterials = machineDef.materials;
@@ -115,13 +115,9 @@ function SheetFormFields({
 	function handleMachineChange(next: SheetMachineId) {
 		setMachine(next);
 
-		// Clear the material if the new machine cannot use it.
-		const materials = machines[next].materials;
-		if (material !== "" && !materials.some((m) => m.code === material)) {
-			setMaterial("");
-			setThickness("");
-			clearError("material", "thickness");
-		}
+		resetPartDetails("");
+
+		// clear onshape selection
 		if (machines[next].selection !== machineDef.selection) clear();
 	}
 
@@ -129,6 +125,22 @@ function SheetFormFields({
 		setMaterial(next);
 		setThickness("");
 		clearError("material", "thickness");
+	}
+
+	function resetPartDetails(name: string) {
+		setPartName(name);
+		setMaterial("");
+		setThickness("");
+		setWeightLb("");
+		setQuantity("1");
+		clearError(
+			"partName",
+			"material",
+			"thickness",
+			"weight",
+			"quantity",
+			"subsystem",
+		);
 	}
 
 	function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
@@ -196,24 +208,19 @@ function SheetFormFields({
 		});
 	}
 
-	const lastOnshapeName = useRef("");
-
 	const { selection, isSelecting, start, cancel, clear } = useOnshapeSelection({
 		kind: machineDef.selection,
 		onSelect: (next) => {
-			// fill the name only if the user did not change it.
-			setPartName((prev) =>
-				prev.trim() === "" || prev === lastOnshapeName.current
-					? next.selectionId
-					: prev,
-			);
-			lastOnshapeName.current = next.selectionId;
+			if (next.selectionId !== lastSelectionId.current) {
+				resetPartDetails(next.selectionId);
+			}
+			lastSelectionId.current = next.selectionId;
 			clearError("selection", "partName", "weight");
 		},
 	});
 
 	return (
-		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
+		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 			<MachineSelectionCard
 				step={1}
 				options={MACHINE_ITEMS}
@@ -229,18 +236,30 @@ function SheetFormFields({
 				onCancel={cancel}
 				error={errors.selection}
 			/>
-			<FieldGroup>
-				<PartDetailsCard step={3}>
-					<TextField
-						id="partName"
-						label="Part Name"
-						value={partName}
-						onChange={(value) => {
-							setPartName(value);
-							clearError("partName");
-						}}
-						error={errors.partName}
-					/>
+			<PartDetailsCard step={3}>
+				<FieldGroup className="gap-6 px-4 pb-4">
+					<div className="grid grid-cols-2 items-start gap-4">
+						<TextField
+							id="partName"
+							label="Part Name"
+							value={partName}
+							onChange={(value) => {
+								setPartName(value);
+								clearError("partName");
+							}}
+							error={errors.partName}
+						/>
+						<TextField
+							id="subsystem"
+							label="Subsystem"
+							value={subsystem}
+							onChange={(value) => {
+								setSubsystem(value);
+								clearError("subsystem");
+							}}
+							error={errors.subsystem}
+						/>
+					</div>
 					<div className="grid grid-cols-2 items-start gap-4">
 						<Field>
 							<FieldLabel htmlFor="material">Material</FieldLabel>
@@ -301,23 +320,11 @@ function SheetFormFields({
 							error={errors.quantity}
 						/>
 					</div>
-					<TextField
-						id="subsystem"
-						label="Subsystem"
-						value={subsystem}
-						onChange={(value) => {
-							setSubsystem(value);
-							clearError("subsystem");
-						}}
-						error={errors.subsystem}
-					/>
-				</PartDetailsCard>
-			</FieldGroup>
-			<CardFooter>
-				<Button type="submit" className="w-full">
-					Submit Request
-				</Button>
-			</CardFooter>
+				</FieldGroup>
+			</PartDetailsCard>
+			<Button type="submit" className="w-full">
+				Submit Request
+			</Button>
 		</form>
 	);
 }
