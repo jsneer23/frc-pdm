@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { BrandHeader } from "../cards/BrandHeader";
 import { TextField } from "../fields/TextField";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -189,6 +190,13 @@ export function LoginForm() {
 
 	return (
 		<Card>
+			<BrandHeader
+				description={
+					email === null
+						? "Sign in with your school email."
+						: `Enter the code sent to ${email}.`
+				}
+			/>
 			{email === null ? (
 				<EmailForm onCodeSent={setEmail} />
 			) : (
