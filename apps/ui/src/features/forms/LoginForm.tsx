@@ -3,9 +3,15 @@ import {
 	isAuthApiError,
 	isAuthRetryableFetchError,
 } from "@supabase/supabase-js";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { supabase } from "@/lib/supabase";
 import { BrandHeader } from "../cards/BrandHeader";
 import { TextField } from "../fields/TextField";
@@ -22,7 +28,7 @@ type EmailFormProps = {
 
 function messageForEmailError(error: AuthError): string {
 	if (isAuthRetryableFetchError(error)) {
-		return "Couldn't reach the server. Supabase may be down. Please contact and admin if this persists.";
+		return "Couldn't reach the server. Supabase may be down. Please contact an admin if this persists.";
 	}
 	if (isAuthApiError(error)) {
 		switch (error.code) {
@@ -34,12 +40,12 @@ function messageForEmailError(error: AuthError): string {
 				return "Too many sign in attempts. Please try again in a few minutes.";
 		}
 	}
-	return "Unknown error. Please try again.";
+	return "Unknown error occurred. Please try again.";
 }
 
 function messageForTokenError(error: AuthError): string {
 	if (isAuthRetryableFetchError(error)) {
-		return "Couldn't reach the server. Supabase may be down. Please contact and admin if this persists.";
+		return "Couldn't reach the server. Supabase may be down. Please contact an admin if this persists.";
 	}
 	if (isAuthApiError(error)) {
 		switch (error.code) {
@@ -49,7 +55,7 @@ function messageForTokenError(error: AuthError): string {
 				return "Too many sign in attempts. Please try again in a few minutes.";
 		}
 	}
-	return "Something went wrong. Please try again.";
+	return "Unknown error occurred. Please try again.";
 }
 
 function EmailForm({ onCodeSent }: EmailFormProps) {
@@ -62,9 +68,9 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 
 		if (isSubmitting) return;
 
-		setLocalEmail(email.trim());
+		const trimmed = email.trim();
 
-		if (failRegexEmail(email)) {
+		if (failRegexEmail(trimmed)) {
 			setError("Enter a valid email.");
 			return;
 		}
@@ -72,7 +78,7 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 		setIsSubmitting(true);
 		try {
 			const { error: emailError } = await supabase.auth.signInWithOtp({
-				email: email,
+				email: trimmed,
 				options: { shouldCreateUser: false },
 			});
 
@@ -85,11 +91,11 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 				);
 				setError(messageForEmailError(emailError));
 			} else {
-				onCodeSent(email);
+				onCodeSent(trimmed);
 			}
 		} catch (err) {
 			console.error(err);
-			setError("Something went wrong. Please try again.");
+			setError("Unknown error occurred. Please try again.");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -114,74 +120,84 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 				/>
 			</CardContent>
 			<CardFooter>
-				<Button type="submit" className="w-full">
-					Submit Email
+				<Button type="submit" className="w-full" disabled={isSubmitting}>
+					{isSubmitting ? "Sending..." : "Submit Email"}
 				</Button>
 			</CardFooter>
 		</form>
 	);
 }
 
-function TokenForm({ email, onBack }: { email: string; onBack: () => void }) {
-	const [token, setToken] = useState<string | null>(null);
+function TokenForm({ email }: { email: string }) {
+	const [token, setToken] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | undefined>(undefined);
 
-	async function handleTokenSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-		e.preventDefault();
-
-		if (token == null) {
-			setError("Enter your one time password.");
-			return;
-		}
+	async function verify(code: string) {
+		setIsSubmitting(true);
 
 		try {
 			const { error: otpError } = await supabase.auth.verifyOtp({
 				email: email,
-				token: token,
+				token: code,
 				type: "email",
 			});
+
+			setToken("");
 
 			if (otpError != null) {
 				console.error(
 					"verifyOtp failed:",
-					otpError.code,
-					"error code:",
 					otpError,
+					"error code:",
+					otpError.code,
 				);
 				setError(messageForTokenError(otpError));
 			}
 		} catch (err) {
-			console.log(err);
+			console.error(err);
+			setError("Unknown error occurred. Please try again.");
+		} finally {
+			setIsSubmitting(false);
 		}
 	}
 
 	return (
-		<form
-			onSubmit={handleTokenSubmit}
-			noValidate
-			className="flex flex-col gap-6"
-		>
-			<CardContent>
-				<TextField
-					id="token"
-					label="One Time Password"
-					value={token == null ? "" : token}
+		<CardContent>
+			<div className="mx-auto flex w-fit flex-col gap-4">
+				<InputOTP
+					maxLength={8}
+					pattern={REGEXP_ONLY_DIGITS}
+					value={token}
 					onChange={(value) => {
 						setToken(value);
 						setError(undefined);
 					}}
-					error={error}
-				/>
-			</CardContent>
-			<CardFooter>
-				<Button type="submit" className="w-full">
-					Submit Token
-				</Button>
-				<Button type="button" variant="ghost" onClick={onBack}>
-					Use a different email
-				</Button>
-			</CardFooter>
-		</form>
+					onComplete={verify}
+					disabled={isSubmitting}
+					aria-invalid={error !== undefined}
+					aria-describedby={error !== undefined ? "token-error" : undefined}
+					containerClassName="justify-center"
+					autoFocus
+				>
+					<InputOTPGroup>
+						{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+							<InputOTPSlot
+								key={i}
+								index={i}
+								aria-invalid={error !== undefined}
+								className="size-12 rounded-lg first:rounded-l-lg last:rounded-r-lg border-2 text-2xl font-bold"
+							/>
+						))}
+					</InputOTPGroup>
+				</InputOTP>
+				{error && (
+					<p id="token-error" role="alert" className="text-sm text-destructive">
+						{error}
+					</p>
+				)}
+			</div>
+		</CardContent>
 	);
 }
 
@@ -196,11 +212,23 @@ export function LoginForm() {
 						? "Sign in with your school email."
 						: `Enter the code sent to ${email}.`
 				}
+				action={
+					email !== null && (
+						<Button
+							type="button"
+							variant="ghost"
+							className="ml-auto mr-6 bg-gray-100 hover:bg-destructive hover:text-white"
+							onClick={() => setEmail(null)}
+						>
+							Change email
+						</Button>
+					)
+				}
 			/>
 			{email === null ? (
 				<EmailForm onCodeSent={setEmail} />
 			) : (
-				<TokenForm email={email} onBack={() => setEmail(null)} />
+				<TokenForm email={email} />
 			)}
 		</Card>
 	);
