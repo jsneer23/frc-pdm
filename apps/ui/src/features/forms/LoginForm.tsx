@@ -1,62 +1,96 @@
+import {
+	type AuthError,
+	isAuthApiError,
+	isAuthRetryableFetchError,
+} from "@supabase/supabase-js";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { TextField } from "../fields/TextField";
-
-type EmailFormErrors = Partial<Record<"email", string>>;
-type TokenFormErrors = Partial<Record<"token", string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function failRegexEmail(email: string) {
-	return !EMAIL_PATTERN.test(email.trim());
+	return !EMAIL_PATTERN.test(email);
 }
 
 type EmailFormProps = {
-	setFormState: React.Dispatch<React.SetStateAction<"email" | "token">>;
-	setFormEmail: React.Dispatch<React.SetStateAction<string>>;
+	onCodeSent: (email: string) => void;
 };
 
-function EmailForm({ setFormState, setFormEmail }: EmailFormProps) {
-	const [email, setLocalEmail] = useState("");
-	const [errors, setErrors] = useState<EmailFormErrors>({});
-
-	function clearError(...fields: (keyof EmailFormErrors)[]) {
-		setErrors((prev) => {
-			const next = { ...prev };
-			for (const field of fields) next[field] = undefined;
-			return next;
-		});
+function messageForEmailError(error: AuthError): string {
+	if (isAuthRetryableFetchError(error)) {
+		return "Couldn't reach the server. Supabase may be down. Please contact and admin if this persists.";
 	}
+	if (isAuthApiError(error)) {
+		switch (error.code) {
+			case "otp_disabled":
+				return "Unable to sign in. This email isn't registered.";
+			case "over_email_send_rate_limit":
+				return "A code has already been sent. Please try again in a few minutes.";
+			case "over_request_rate_limit":
+				return "Too many sign in attempts. Please try again in a few minutes.";
+		}
+	}
+	return "Unknown error. Please try again.";
+}
+
+function messageForTokenError(error: AuthError): string {
+	if (isAuthRetryableFetchError(error)) {
+		return "Couldn't reach the server. Supabase may be down. Please contact and admin if this persists.";
+	}
+	if (isAuthApiError(error)) {
+		switch (error.code) {
+			case "otp_expired":
+				return "Code is incorrect or has expired.";
+			case "over_request_rate_limit":
+				return "Too many sign in attempts. Please try again in a few minutes.";
+		}
+	}
+	return "Something went wrong. Please try again.";
+}
+
+function EmailForm({ onCodeSent }: EmailFormProps) {
+	const [email, setLocalEmail] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [error, setError] = useState<string | undefined>(undefined);
 
 	async function handleEmailSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
-		const nextErrors: EmailFormErrors = {};
+		if (isSubmitting) return;
+
+		setLocalEmail(email.trim());
 
 		if (failRegexEmail(email)) {
-			nextErrors.email = "Enter a valid email.";
+			setError("Enter a valid email.");
 			return;
 		}
 
-		const { error: emailError } = await supabase.auth.signInWithOtp({
-			email,
-			options: { shouldCreateUser: false },
-		});
+		setIsSubmitting(true);
+		try {
+			const { error: emailError } = await supabase.auth.signInWithOtp({
+				email: email,
+				options: { shouldCreateUser: false },
+			});
 
-		const request = {
-			msg: "sent request to supabase",
-			email: email,
-		};
-
-		console.log(request);
-
-		if (emailError != null) {
-			nextErrors.email = "Unable to sign in. Supabase may be down.";
-		} else {
-			setFormEmail(email);
-			setFormState("token");
+			if (emailError != null) {
+				console.error(
+					"signInWithOtp failed:",
+					emailError,
+					"error code:",
+					emailError.code,
+				);
+				setError(messageForEmailError(emailError));
+			} else {
+				onCodeSent(email);
+			}
+		} catch (err) {
+			console.error(err);
+			setError("Something went wrong. Please try again.");
+		} finally {
+			setIsSubmitting(false);
 		}
 	}
 
@@ -66,18 +100,18 @@ function EmailForm({ setFormState, setFormEmail }: EmailFormProps) {
 			noValidate
 			className="flex flex-col gap-6"
 		>
-			<CardHeader>
+			<CardContent>
 				<TextField
 					id="email"
 					label="Email"
 					value={email}
 					onChange={(value) => {
 						setLocalEmail(value);
-						clearError("email");
+						setError(undefined);
 					}}
-					error={errors.email}
+					error={error}
 				/>
-			</CardHeader>
+			</CardContent>
 			<CardFooter>
 				<Button type="submit" className="w-full">
 					Submit Email
@@ -87,44 +121,36 @@ function EmailForm({ setFormState, setFormEmail }: EmailFormProps) {
 	);
 }
 
-function TokenForm({ email }: { email: string }) {
-	const [token, setToken] = useState("");
-	const [errors, setErrors] = useState<TokenFormErrors>({});
-
-	function clearError(...fields: (keyof TokenFormErrors)[]) {
-		setErrors((prev) => {
-			const next = { ...prev };
-			for (const field of fields) next[field] = undefined;
-			return next;
-		});
-	}
+function TokenForm({ email, onBack }: { email: string; onBack: () => void }) {
+	const [token, setToken] = useState<string | null>(null);
+	const [error, setError] = useState<string | undefined>(undefined);
 
 	async function handleTokenSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
-		const nextErrors: TokenFormErrors = {};
-
 		if (token == null) {
-			nextErrors.token = "Enter your one time password.";
+			setError("Enter your one time password.");
 			return;
 		}
 
-		const request = {
-			msg: "sent request to supabase",
-			email: email,
-		};
+		try {
+			const { error: otpError } = await supabase.auth.verifyOtp({
+				email: email,
+				token: token,
+				type: "email",
+			});
 
-		console.log(request);
-
-		const { error: otpError } = await supabase.auth.verifyOtp({
-			email: email,
-			token: token,
-			type: "email",
-		});
-
-		if (otpError != null) {
-			nextErrors.token = "Unable to sign in. Token incorrect.";
-			console.log("Unable to sign in. Token incorrect.");
+			if (otpError != null) {
+				console.error(
+					"verifyOtp failed:",
+					otpError.code,
+					"error code:",
+					otpError,
+				);
+				setError(messageForTokenError(otpError));
+			}
+		} catch (err) {
+			console.log(err);
 		}
 	}
 
@@ -134,37 +160,40 @@ function TokenForm({ email }: { email: string }) {
 			noValidate
 			className="flex flex-col gap-6"
 		>
-			<CardHeader>
+			<CardContent>
 				<TextField
 					id="token"
 					label="One Time Password"
-					value={token}
+					value={token == null ? "" : token}
 					onChange={(value) => {
 						setToken(value);
-						clearError("token");
+						setError(undefined);
 					}}
-					error={errors.token}
+					error={error}
 				/>
-			</CardHeader>
+			</CardContent>
 			<CardFooter>
 				<Button type="submit" className="w-full">
 					Submit Token
+				</Button>
+				<Button type="button" variant="ghost" onClick={onBack}>
+					Use a different email
 				</Button>
 			</CardFooter>
 		</form>
 	);
 }
 
-export async function LoginForm() {
-	const [formState, setFormState] = useState<"email" | "token">("email");
-	const [email, setFormEmail] = useState("");
+export function LoginForm() {
+	const [email, setEmail] = useState<string | null>(null);
 
 	return (
 		<Card>
-			{formState === "email" && (
-				<EmailForm setFormState={setFormState} setFormEmail={setFormEmail} />
+			{email === null ? (
+				<EmailForm onCodeSent={setEmail} />
+			) : (
+				<TokenForm email={email} onBack={() => setEmail(null)} />
 			)}
-			{formState === "token" && <TokenForm email={email} />}
 		</Card>
 	);
 }
