@@ -258,7 +258,7 @@ export type Database = {
           manufacturer_id?: number | null
           name: string
           qty?: number
-          sequence_number: number
+          sequence_number?: number
           status?: Database["public"]["Enums"]["part_status"]
           stock_id: number
           subsystem_id: number
