@@ -9,7 +9,10 @@ export async function fetchTeam(
 ) {
 	const res = await fetch(
 		`https://www.thebluealliance.com/api/v3/match/${eventCode}_qm${matchNumber}`,
-		{ headers: { "X-TBA-Auth-Key": TBA_KEY } },
+		{
+			headers: { "X-TBA-Auth-Key": TBA_KEY },
+			signal: AbortSignal.timeout(5000),
+		},
 	);
 	if (!res.ok) throw new Error(`TBA returned ${res.status}`);
 
