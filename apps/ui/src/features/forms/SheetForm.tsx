@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Field,
 	FieldError,
@@ -14,7 +14,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { type MachineRow, machinesQueryOptions } from "@/lib/queries";
+import {
+	type MachineRow,
+	machinesQueryOptions,
+	type RobotRow,
+	robotsQueryOptions,
+} from "@/lib/queries";
+import { cn } from "@/lib/utils";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
@@ -28,6 +34,7 @@ import { useOnshapeSelection } from "../onshape/useOnshapeSelection";
 
 type FormErrors = Partial<
 	Record<
+		| "robot"
 		| "partName"
 		| "material"
 		| "thickness"
@@ -39,11 +46,6 @@ type FormErrors = Partial<
 	>
 >;
 
-type SheetMachineId = (typeof PART_TYPES.sheet.machines)[number];
-
-// exchange codes for labels for use in select components
-// defined outside component so it only runs once per
-// db fetch and not once per render
 function toSelectItems(rows: { code: string; label: string }[]) {
 	return rows.map((row) => ({ value: row.code, label: row.label }));
 }
@@ -53,6 +55,7 @@ function toSelectItems(rows: { code: string; label: string }[]) {
 type SheetMachine = MachineRow & {
 	selection: NonNullable<MachineRow["selection"]>;
 };
+type SheetMachineId = (typeof PART_TYPES.sheet.machines)[number];
 
 function selectSheetMachines(rows: MachineRow[]) {
 	const result = {} as Record<SheetMachineId, SheetMachine>;
@@ -70,22 +73,29 @@ function selectSheetMachines(rows: MachineRow[]) {
 export function SheetForm() {
 	const {
 		data: machines,
-		isPending,
-		isError,
+		isPending: machinesPending,
+		isError: machinesError,
 	} = useQuery({ ...machinesQueryOptions, select: selectSheetMachines });
 
-	if (isPending) return <p>Loading machines…</p>;
-	if (isError) return <p>Couldn't load machines.</p>;
+	const {
+		data: robots,
+		isPending: robotsPending,
+		isError: robotsError,
+	} = useQuery({ ...robotsQueryOptions });
 
-	return <SheetFormFields machines={machines} />;
+	if (machinesPending || robotsPending) return <p>Loading…</p>;
+	if (machinesError || robotsError) return <p>Couldn't load data.</p>;
+
+	return <SheetFormFields machines={machines} robots={robots} />;
 }
 
-function SheetFormFields({
-	machines,
-}: {
+type SheetFormProps = {
 	machines: Record<SheetMachineId, SheetMachine>;
-}) {
-	const MACHINE_ITEMS = PART_TYPES.sheet.machines.map((id) => ({
+	robots: RobotRow[];
+};
+
+function SheetFormFields({ machines, robots }: SheetFormProps) {
+	const machineItems = PART_TYPES.sheet.machines.map((id) => ({
 		value: id,
 		label: machines[id].label,
 		file_format: machines[id].file_format,
@@ -95,26 +105,37 @@ function SheetFormFields({
 		PART_TYPES.sheet.machines[0],
 	);
 	const [partName, setPartName] = useState("");
-	const [subsystem, setSubsystem] = useState("");
-	const [material, setMaterial] = useState("");
-	const [thickness, setThickness] = useState("");
+	const [robotCode, setRobotCode] = useState<string | null>(null);
+	const [subsystem, setSubsystem] = useState<string | null>(null);
+	const [material, setMaterial] = useState<string | null>(null);
+	const [stockId, setStockId] = useState<number | null>(null);
 	const [quantity, setQuantity] = useState("1");
-	const [weightLb, setWeightLb] = useState("");
+	const [weightLb, setWeightLb] = useState<string>("");
 	const [errors, setErrors] = useState<FormErrors>({});
 	const lastSelectionId = useRef<string | null>(null);
 
+	const robot = robots.find((r) => r.code === robotCode);
+	const availableSubsystems = robot?.subsystems ?? [];
 	const machineDef = machines[machine];
 	const availableMaterials = machineDef.materials;
 	const selectedMaterial = availableMaterials.find((m) => m.code === material);
-	const availableThicknesses =
+	const availableStocks =
 		selectedMaterial?.stocks
-			.map((s) => s.thickness_in)
-			.filter((t): t is number => t !== null) ?? [];
-	const showThickness = availableThicknesses.length > 0;
+			.filter((s) => s.thickness_in !== null)
+			.map((s) => ({
+				value: s.id,
+				label: String(s.thickness_in),
+			})) ?? [];
+	const disableThickness = availableStocks.length === 0;
+
+	function handleRobotChange(next: string) {
+		setRobotCode(next);
+		setSubsystem(null);
+		clearError("robot", "subsystem");
+	}
 
 	function handleMachineChange(next: SheetMachineId) {
 		setMachine(next);
-
 		resetPartDetails("");
 
 		// clear onshape selection
@@ -122,15 +143,15 @@ function SheetFormFields({
 	}
 
 	function handleMaterialChange(next: string) {
+		setStockId(null);
 		setMaterial(next);
-		setThickness("");
 		clearError("material", "thickness");
 	}
 
 	function resetPartDetails(name: string) {
 		setPartName(name);
-		setMaterial("");
-		setThickness("");
+		setMaterial(null);
+		setStockId(null);
 		setWeightLb("");
 		setQuantity("1");
 		clearError(
@@ -147,10 +168,13 @@ function SheetFormFields({
 		e.preventDefault();
 
 		const nextErrors: FormErrors = {};
-		const name = partName.trim();
-		const subsystemName = subsystem.trim();
+		const trimmedName = partName.trim();
 		const qty = Number(quantity);
 		const weight = Number(weightLb);
+		const subsystemId = availableSubsystems.find(
+			(s) => s.code === subsystem,
+		)?.id;
+		const machineId = machines[machine].id;
 
 		if (!selection) {
 			nextErrors.selection =
@@ -159,11 +183,13 @@ function SheetFormFields({
 					: "Select a part in Onshape.";
 		}
 
-		if (name === "") nextErrors.partName = "Enter a part name.";
-		if (subsystemName === "") nextErrors.subsystem = "Enter a subsystem name.";
-		if (material === "") nextErrors.material = "Select a material.";
-		if (showThickness && thickness === "")
-			nextErrors.thickness = "Select a thickness.";
+		if (robot === undefined) nextErrors.robot = "Select a robot.";
+		if (trimmedName === "") nextErrors.partName = "Enter a part name.";
+		if (subsystem === null || subsystemId === undefined) {
+			nextErrors.subsystem = "Select a subsystem.";
+		}
+		if (material === null) nextErrors.material = "Select a material.";
+		if (stockId === null) nextErrors.thickness = "Select a thickness.";
 		if (!Number.isInteger(qty) || qty < 1)
 			nextErrors.quantity = "Enter a valid quantity.";
 		if (!(weight > 0 && weight <= 20)) {
@@ -174,7 +200,14 @@ function SheetFormFields({
 		setErrors(nextErrors);
 		if (Object.keys(nextErrors).length > 0) return;
 
-		if (!selection || material === "") return;
+		if (
+			!selection ||
+			material === null ||
+			robot === undefined ||
+			subsystemId === undefined ||
+			stockId === null
+		)
+			return;
 
 		// Request
 		const request: PartRequest = {
@@ -189,12 +222,12 @@ function SheetFormFields({
 				selectionId: selection.selectionId,
 				microversionId: selection.microversionId,
 			},
-			partName: name,
-			machine,
-			material,
-			thickness: showThickness ? Number(thickness) : null,
+			partName: trimmedName,
+			subsystemId,
+			machineId,
+			stockId,
 			quantity: qty,
-			weightLb: weight,
+			cadMassLb: weight,
 		};
 
 		console.log(request);
@@ -223,7 +256,7 @@ function SheetFormFields({
 		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 			<MachineSelectionCard
 				step={1}
-				options={MACHINE_ITEMS}
+				options={machineItems}
 				value={machine}
 				onChange={handleMachineChange}
 			/>
@@ -236,7 +269,41 @@ function SheetFormFields({
 				onCancel={cancel}
 				error={errors.selection}
 			/>
-			<PartDetailsCard step={3}>
+			<PartDetailsCard
+				step={3}
+				actions={
+					<Field>
+						<Select
+							value={robotCode}
+							onValueChange={(value) => {
+								if (value) handleRobotChange(value);
+							}}
+							items={toSelectItems(robots)}
+						>
+							<SelectTrigger
+								aria-label="Robot"
+								aria-invalid={!!errors.robot}
+								className={cn(
+									buttonVariants({ variant: "ghost", size: "sm" }),
+									"w-auto bg-transparent data-placeholder:text-foreground",
+									robotCode !== null &&
+										"border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary dark:hover:bg-primary/20 aria-expanded:bg-primary/20 aria-expanded:text-primary",
+								)}
+							>
+								<SelectValue placeholder="Select Robot" />
+							</SelectTrigger>
+							<SelectContent>
+								{robots.map((robot) => (
+									<SelectItem key={robot.id} value={robot.code}>
+										{robot.code}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<FieldError>{errors.robot}</FieldError>
+					</Field>
+				}
+			>
 				<FieldGroup className="gap-6 px-4 pb-4">
 					<div className="grid grid-cols-2 items-start gap-4">
 						<TextField
@@ -249,16 +316,34 @@ function SheetFormFields({
 							}}
 							error={errors.partName}
 						/>
-						<TextField
-							id="subsystem"
-							label="Subsystem"
-							value={subsystem}
-							onChange={(value) => {
-								setSubsystem(value);
-								clearError("subsystem");
-							}}
-							error={errors.subsystem}
-						/>
+						<Field>
+							<FieldLabel htmlFor="subsystem">Subsystem</FieldLabel>
+							<Select
+								value={subsystem}
+								disabled={robot === undefined}
+								onValueChange={(value) => {
+									setSubsystem(value);
+									clearError("subsystem");
+								}}
+								items={toSelectItems(availableSubsystems)}
+							>
+								<SelectTrigger
+									id="subsystem"
+									className="w-full"
+									aria-invalid={!!errors.subsystem}
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{availableSubsystems.map((subsystem) => (
+										<SelectItem key={subsystem.id} value={subsystem.code}>
+											{subsystem.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<FieldError>{errors.subsystem}</FieldError>
+						</Field>
 					</div>
 					<div className="grid grid-cols-2 items-start gap-4">
 						<Field>
@@ -288,18 +373,16 @@ function SheetFormFields({
 							<FieldError>{errors.material}</FieldError>
 						</Field>
 
-						{showThickness && (
-							<ThicknessField
-								options={availableThicknesses}
-								disabled={availableThicknesses.length === 0}
-								value={thickness}
-								onChange={(value) => {
-									setThickness(value);
-									clearError("thickness");
-								}}
-								error={errors.thickness}
-							/>
-						)}
+						<ThicknessField
+							items={availableStocks}
+							disabled={disableThickness}
+							value={stockId}
+							onChange={(value) => {
+								setStockId(value);
+								clearError("thickness");
+							}}
+							error={errors.thickness}
+						/>
 					</div>
 					<div className="grid grid-cols-2 items-start gap-4">
 						<WeightField

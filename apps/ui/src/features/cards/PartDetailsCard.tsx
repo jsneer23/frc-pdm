@@ -3,16 +3,22 @@ import { StepHeader } from "./StepHeader";
 
 type PartDetailsCardProps = {
 	step?: number;
+	actions?: React.ReactNode;
 	children: React.ReactNode;
 };
 
-export function PartDetailsCard({ step, children }: PartDetailsCardProps) {
+export function PartDetailsCard({
+	step,
+	actions,
+	children,
+}: PartDetailsCardProps) {
 	return (
 		<StepCard>
 			<StepHeader
 				step={step}
 				title="Part details"
-				description="Check the name, material, and quantity."
+				description="Pick a robot and enter details."
+				actions={actions}
 			/>
 			{children}
 		</StepCard>

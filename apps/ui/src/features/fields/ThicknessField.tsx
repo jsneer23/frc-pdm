@@ -8,15 +8,18 @@ import {
 } from "@/components/ui/select";
 
 type ThicknessFieldProps = {
-	options: readonly number[];
+	items: {
+		value: number;
+		label: string;
+	}[];
 	disabled?: boolean;
-	value: string;
-	onChange: (value: string) => void;
+	value: number | null;
+	onChange: (value: number | null) => void;
 	error?: string;
 };
 
 export function ThicknessField({
-	options,
+	items,
 	disabled,
 	value,
 	onChange,
@@ -27,16 +30,17 @@ export function ThicknessField({
 			<FieldLabel htmlFor="thickness">Thickness (in)</FieldLabel>
 			<Select
 				value={value}
-				onValueChange={(next) => onChange(next ?? "")}
+				onValueChange={(next) => onChange(next)}
 				disabled={disabled}
+				items={items}
 			>
 				<SelectTrigger id="thickness" className="w-full" aria-invalid={!!error}>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					{options.map((t) => (
-						<SelectItem key={t} value={String(t)}>
-							{t}
+					{items.map((t) => (
+						<SelectItem key={t.value} value={t.value}>
+							{t.label}
 						</SelectItem>
 					))}
 				</SelectContent>

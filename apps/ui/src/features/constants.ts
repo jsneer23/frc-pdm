@@ -46,12 +46,12 @@ export type PartRequest = {
 		selectionId: string;
 		microversionId: string;
 	};
+	subsystemId: number;
 	partName: string;
-	machine: MachineId;
-	material: string;
-	thickness: number | null;
+	machineId: number;
+	stockId: number;
 	quantity: number;
-	weightLb: number;
+	cadMassLb: number;
 };
 
 export type PartRequestResponse =
