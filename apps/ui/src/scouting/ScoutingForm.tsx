@@ -107,19 +107,11 @@ export function ScoutingForm() {
 	else if (team) message = team;
 	else message = "Pick an event, match, and position";
 
-	const row = [
-		...autoCoral,
-		...teleCoral,
-		endgame,
-		...COMMENTS.map((c) => (comments.includes(c) ? 1 : 0)),
-	].join("\t");
-
 	type SavedMatch = {
 		scouter: string;
 		key: string;
 		team: string;
-		row: string;
-		notes: string;
+		qrData: string;
 		savedAt: number; // Date.now()
 	};
 
@@ -135,16 +127,28 @@ export function ScoutingForm() {
 		localStorage.setItem("savedMatches", JSON.stringify(saved));
 	}, [saved]);
 
+	const qrData = [
+		eventCode,
+		matchNumber,
+		position,
+		team,
+		scouterName,
+		...autoCoral,
+		...teleCoral,
+		endgame,
+		...COMMENTS.map((c) => (comments.includes(c) ? 1 : 0)),
+		notes.replace(/[\t\n]/g, " "),
+	].join("/t");
+
 	const matchKey = `${eventCode}_qm${matchNumber}_${position}`;
-	const isSaved = saved.some((m) => m.key === matchKey && m.row === row);
+	const isSaved = saved.some((m) => m.key === matchKey && m.qrData === qrData);
 
 	const handleSave = () => {
 		const newEntry: SavedMatch = {
 			scouter: scouterName,
 			key: matchKey,
 			team: team ?? "",
-			row,
-			notes: notes.replace(/[\t\n]/g, " "),
+			qrData,
 			savedAt: Date.now(),
 		};
 		setSaved((prev) => [
@@ -161,6 +165,7 @@ export function ScoutingForm() {
 		setConfirmed(false);
 		setTab("start");
 		setNotes("");
+		setTeam("");
 	}
 
 	function reset() {
@@ -387,7 +392,7 @@ export function ScoutingForm() {
 						</div>
 						<div className="mt-2 flex flex-col gap-4">
 							<QRCodeSVG
-								value={row}
+								value={qrData}
 								size={300}
 								level="H"
 								imageSettings={{
@@ -432,7 +437,7 @@ export function ScoutingForm() {
 														<User className="size-4" /> {m.scouter}
 													</span>
 													<QRCodeSVG
-														value={m.row}
+														value={m.qrData}
 														size={300}
 														level="H"
 														imageSettings={{
