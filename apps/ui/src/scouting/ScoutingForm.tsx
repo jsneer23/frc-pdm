@@ -106,8 +106,8 @@ export function ScoutingForm() {
 	else message = "Pick an event, match, and position";
 
 	const row = [
-		autoCoral,
-		teleCoral,
+		...autoCoral,
+		...teleCoral,
 		endgame,
 		...COMMENTS.map((c) => (comments.includes(c) ? 1 : 0)),
 	].join("\t");
@@ -247,7 +247,7 @@ export function ScoutingForm() {
 											position &&
 												(position?.startsWith("R")
 													? "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive dark:hover:bg-destructive/20 aria-expanded:bg-destructive/20 aria-expanded:text-destructive"
-													: "border-blue/20 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-500 dark:hover:bg-blue-500/20 aria-expanded:bg-blue-500/20 aria-expanded:text-blue=-500"),
+													: "border-blue-500/20 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-500 dark:hover:bg-blue-500/20 aria-expanded:bg-blue-500/20 aria-expanded:text-blue-500"),
 										)}
 									>
 										<SelectValue placeholder="Select Position" />
