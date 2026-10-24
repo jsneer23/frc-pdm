@@ -63,19 +63,24 @@ export function OnshapeSelectionCard({
 				description={text.description}
 				actions={
 					isSelecting ? (
-						<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+						<Button type="button" variant="destructive" onClick={onCancel}>
 							Cancel
 						</Button>
 					) : selection ? (
 						<Badge
 							variant="outline"
-							className="h-8 gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 border-primary/20 bg-primary/10 text-primary"
+							className="h-9 gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 border-primary/20 bg-primary/10 text-primary"
 						>
 							<CheckIcon aria-hidden="true" />
 							Selected
 						</Badge>
 					) : (
-						<Button type="button" variant="outline" size="sm" onClick={onStart}>
+						<Button
+							type="button"
+							variant="ghost"
+							className="ml-auto"
+							onClick={onStart}
+						>
 							{text.action}
 						</Button>
 					)

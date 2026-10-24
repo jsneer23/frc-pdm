@@ -46,9 +46,8 @@ export function PartRequestPage() {
 				description={"Send a part to the production queue."}
 				action={
 					<Button
-						variant="ghost"
-						size="sm"
-						className="ml-auto mr-6 bg-gray-100 hover:bg-destructive hover:text-white"
+						variant="destructive"
+						className="ml-auto mr-6"
 						onClick={handleSignOut}
 					>
 						Sign out
