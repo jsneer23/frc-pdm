@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 const HOLD_COLORS = {
 	primary: {
 		idle: "border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground",
-		fill: "bg-primary/40 sm:bg-primary sm:text-white hover:bg-primary hover:text-primary-foreground",
+		holding: "bg-primary text-primary-foreground",
 		done: "bg-primary text-primary-foreground",
 	},
 	destructive: {
 		idle: "border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white",
-		fill: "bg-destructive/40 sm:bg-destructive sm:text-white hover:bg-destructive hover:text-white",
-		done: "bg-destructive text-primary-foreground",
+		holding: "bg-destructive text-white hover:bg-destructive hover:text-white",
+		done: "bg-destructive text-primary-foreground hover:bg-destructive hover:text-white",
 	},
 };
 
@@ -60,10 +60,12 @@ export function HoldButton({
 				"relative overflow-hidden select-none",
 				done
 					? HOLD_COLORS[variant].done
-					: cn(
-							"border-border bg-background text-secondary-foreground",
-							HOLD_COLORS[variant].fill,
-						),
+					: holding
+						? HOLD_COLORS[variant].holding
+						: cn(
+								"border-border bg-background text-secondary-foreground",
+								HOLD_COLORS[variant].idle,
+							),
 			)}
 		>
 			<span
