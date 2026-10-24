@@ -27,6 +27,7 @@ import { ToggleGroup } from "@/components/ui/toggle-group";
 import { BrandHeader } from "@/features/cards/BrandHeader";
 import { TextField } from "@/features/fields/TextField";
 import { cn } from "@/lib/utils";
+import { ClearCache } from "./ClearCache";
 import { COMMENTS, CommentToggle } from "./CommentToggle";
 import { autoPlusOne, Coral, telePlusOne } from "./Coral";
 import { HoldButton } from "./HoldButton";
@@ -425,21 +426,16 @@ export function ScoutingForm() {
 							/>
 							<div className="grid grid-cols-2 gap-3">
 								<Button onClick={handleSave} disabled={!endgame}>
-									Save QR Code
+									{endgame ? "Save QR Code" : "Pick climb to enable"}
 								</Button>
 								<HoldButton
 									disabled={!isSaved}
 									onComplete={reset}
-									idleLabel="Hold to Reset"
+									idleLabel="Hold to reset"
 									doneLabel="Reset!"
 									variant="destructive"
 								/>
 							</div>
-							{!endgame && (
-								<span className="text-center text-sm text-destructive">
-									Pick a climb option before saving.
-								</span>
-							)}
 						</div>
 					</TabsContent>
 					<TabsContent value="saved">
@@ -450,40 +446,48 @@ export function ScoutingForm() {
 									<FaceSlightlyFrowning />
 								</span>
 							) : (
-								<Carousel className="mx-auto w-full max-w-xs">
-									<CarouselContent>
-										{saved.map((m) => {
-											const [event, match, pos] = m.key.split("_");
-											return (
-												<CarouselItem key={m.key}>
-													<div className="flex flex-col items-center gap-2">
-														<span className="text-xl font-bold">{event}</span>
-														<span className="flex items-center justify-center gap-1 text-xl font-bold">
-															<QualMatch className="size-8" />{" "}
-															{match.replace("qm", "")}
-															<Dot className="size-5" />
-															<Bot className="size-6.5" /> {m.team}
-														</span>
-														<span className="flex items-center gap-1 text-sm text-muted-foreground">
-															<MapPin className="size-4" /> {pos}
-															<Dot className="size-4" />
-															<User className="size-4" /> {m.scouter}
-														</span>
-														<QRCodeSVG
-															value={m.qrData}
-															size={300}
-															level="H"
-															imageSettings={qrImage}
-															className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
-														/>
-													</div>
-												</CarouselItem>
-											);
-										})}
-									</CarouselContent>
-									<CarouselPrevious />
-									<CarouselNext />
-								</Carousel>
+								<div className="text-center">
+									<Carousel className="mx-auto w-full max-w-xs">
+										<CarouselContent>
+											{saved.map((m) => {
+												const [event, match, pos] = m.key.split("_");
+												return (
+													<CarouselItem key={m.key}>
+														<div className="flex flex-col items-center gap-2">
+															<span className="text-xl font-bold">{event}</span>
+															<span className="flex items-center justify-center gap-1 text-xl font-bold">
+																<QualMatch className="size-8" />{" "}
+																{match.replace("qm", "")}
+																<Dot className="size-5" />
+																<Bot className="size-6.5" /> {m.team}
+															</span>
+															<span className="flex items-center gap-1 text-sm text-muted-foreground">
+																<MapPin className="size-4" /> {pos}
+																<Dot className="size-4" />
+																<User className="size-4" /> {m.scouter}
+															</span>
+															<QRCodeSVG
+																value={m.qrData}
+																size={300}
+																level="H"
+																imageSettings={qrImage}
+																className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
+															/>
+														</div>
+													</CarouselItem>
+												);
+											})}
+										</CarouselContent>
+										<CarouselPrevious />
+										<CarouselNext />
+									</Carousel>
+									<div className="mt-4">
+										<ClearCache
+											count={saved.length}
+											onDelete={() => setSaved([])}
+										/>
+									</div>
+								</div>
 							)}
 						</div>
 					</TabsContent>
