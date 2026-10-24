@@ -250,7 +250,7 @@ export function ScoutingForm() {
 													: "border-blue/20 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-500 dark:hover:bg-blue-500/20 aria-expanded:bg-blue-500/20 aria-expanded:text-blue=-500"),
 										)}
 									>
-										<SelectValue placeholder="Select Event" />
+										<SelectValue placeholder="Select Position" />
 									</SelectTrigger>
 									<SelectContent>
 										{POSITIONS.map((event) => (
