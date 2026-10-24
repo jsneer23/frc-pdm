@@ -1,4 +1,4 @@
-import { Skull, Trash2 } from "lucide-react";
+import { Flag, Skull, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
 	AlertDialog,
@@ -35,14 +35,18 @@ export function ClearCache({ count, onDelete }: DeleteAllSavedProps) {
 						<Skull className="size-5 shrink-0" /> DANGER
 						<Skull className="size-5 shrink-0" />
 					</AlertDialogTitle>
-					<AlertDialogDescription>
-						This permanently removes every saved QR code from this device. It
-						can't be undone. Make sure each match has been scanned into the
-						spreadsheet before you continue.
+					<AlertDialogDescription className="text-center">
+						Arrr... There's danger afoot. This permanently deletes every saved
+						QR code from this device. It can't be undone. Make sure each match
+						has been scanned into the spreadsheet before you continue.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Keep them</AlertDialogCancel>
+					<AlertDialogCancel>
+						{" "}
+						<Flag />
+						Return to safety
+					</AlertDialogCancel>
 					<HoldButton
 						variant="destructive"
 						idleLabel={`Hold to delete ${label}`}
