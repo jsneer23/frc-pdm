@@ -1,4 +1,4 @@
-import { Bot, Dot, MapPin, User } from "lucide-react";
+import { Bot, Dot, FaceSlightlyFrowning, MapPin, User } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
 	CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -60,10 +61,17 @@ export function ScoutingForm() {
 	const [matchNumber, setMatchNumber] = useState("");
 	const [position, setPosition] = useState<Position | null>(null);
 	const [confirmed, setConfirmed] = useState(false);
-	const [notes, setNotes] = useState("");
+
+	const [team, setTeam] = useState<string | null>(null);
+	const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
 	const canConfirm = Boolean(
-		scouterName && eventCode && matchNumber && position,
+		scouterName &&
+			eventCode &&
+			matchNumber &&
+			position &&
+			team &&
+			status !== "loading",
 	);
 
 	const [autoCoral, setAutoCoral] = useState([0, 0, 0, 0]);
@@ -72,9 +80,7 @@ export function ScoutingForm() {
 	const [endgame, setEndgame] = useState("");
 
 	const [comments, setComments] = useState<string[]>([]);
-
-	const [team, setTeam] = useState<string | null>(null);
-	const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+	const [notes, setNotes] = useState("");
 
 	useEffect(() => {
 		if (!eventCode || !matchNumber || !position) return;
@@ -138,7 +144,7 @@ export function ScoutingForm() {
 		endgame,
 		...COMMENTS.map((c) => (comments.includes(c) ? 1 : 0)),
 		notes.replace(/[\t\n]/g, " "),
-	].join("/t");
+	].join("\t");
 
 	const matchKey = `${eventCode}_qm${matchNumber}_${position}`;
 	const isSaved = saved.some((m) => m.key === matchKey && m.qrData === qrData);
@@ -165,13 +171,19 @@ export function ScoutingForm() {
 		setConfirmed(false);
 		setTab("start");
 		setNotes("");
-		setTeam("");
 	}
 
 	function reset() {
 		resetKeepMatchNumber();
 		setMatchNumber((m) => String(Number(m) + 1));
 	}
+
+	const qrImage = {
+		src: "https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png",
+		height: 70,
+		width: 70,
+		excavate: true,
+	};
 
 	return (
 		<Card className="mx-auto w-full max-w-2xl gap-4">
@@ -270,14 +282,29 @@ export function ScoutingForm() {
 							</Field>
 						</div>
 						<div className="mt-6">
-							<div className="flex flex-col items-center gap-4 rounded-lg border p-4">
-								<span className="text-sm text-muted-foreground">
-									You're Scouting Team:
-								</span>
-								<span className="text-center text-3xl font-bold tabular-nums">
-									{message}
-								</span>
-							</div>
+							{status === "error" ? (
+								<div className="flex flex-col items-center gap-4 rounded-lg border p-4">
+									<span className="text-sm text-muted-foreground">
+										Enter Team Manually:
+									</span>
+									<Input
+										inputMode="numeric"
+										placeholder="Team number"
+										aria-label="Team number"
+										value={team ?? ""}
+										onChange={(e) => setTeam(e.target.value)}
+									/>
+								</div>
+							) : (
+								<div className="flex flex-col items-center gap-4 rounded-lg border p-4">
+									<span className="text-base md:text-sm text-muted-foreground">
+										You're Scouting Team:
+									</span>
+									<span className="text-center text-3xl font-bold tabular-nums">
+										{message}
+									</span>
+								</div>
+							)}
 						</div>
 						<div className="mt-6 flex flex-col gap-4">
 							<Field className="items-center">
@@ -304,7 +331,7 @@ export function ScoutingForm() {
 						/>
 					</TabsContent>
 					<TabsContent value="tele" className="flex flex-col gap-4">
-						<div className="grid grid-cols-2 justify_center">
+						<div className="grid grid-cols-2">
 							<Coral
 								levels={teleCoral}
 								setLevels={setTeleCoral}
@@ -318,7 +345,6 @@ export function ScoutingForm() {
 									<RadioGroup
 										value={endgame}
 										onValueChange={setEndgame}
-										defaultValue="no_attempt"
 										className="w-fit"
 									>
 										<div className="flex items-center gap-3">
@@ -350,10 +376,7 @@ export function ScoutingForm() {
 							</Field>
 						</div>
 						<Field>
-							<FieldLabel
-								htmlFor="textarea-message"
-								className="justify-center text-lg font-semibold"
-							>
+							<FieldLabel className="justify-center text-lg font-semibold">
 								Comments
 							</FieldLabel>
 							<ToggleGroup
@@ -370,7 +393,6 @@ export function ScoutingForm() {
 						</Field>
 						<Field>
 							<Textarea
-								id="textarea-message"
 								placeholder="Type additional comments here."
 								value={notes}
 								onChange={(e) => setNotes(e.target.value)}
@@ -395,16 +417,13 @@ export function ScoutingForm() {
 								value={qrData}
 								size={300}
 								level="H"
-								imageSettings={{
-									src: "https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png",
-									height: 70,
-									width: 70,
-									excavate: true,
-								}}
+								imageSettings={qrImage}
 								className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
 							/>
-							<div className="grid grid-cols-2">
-								<Button onClick={handleSave}>Save QR Code</Button>
+							<div className="grid grid-cols-2 gap-3">
+								<Button onClick={handleSave} disabled={!endgame}>
+									Save QR Code
+								</Button>
 								<HoldButton
 									disabled={!isSaved}
 									onComplete={reset}
@@ -413,49 +432,56 @@ export function ScoutingForm() {
 									variant="destructive"
 								/>
 							</div>
+							{!endgame && (
+								<span className="text-center text-sm text-destructive">
+									Pick a climb option before saving.
+								</span>
+							)}
 						</div>
 					</TabsContent>
 					<TabsContent value="saved">
 						<div className="px-12">
-							<Carousel className="mx-auto w-full max-w-xs">
-								<CarouselContent>
-									{saved.map((m) => {
-										const [event, match, position] = m.key.split("_");
-										return (
-											<CarouselItem key={m.key}>
-												<div className="flex flex-col items-center gap-2">
-													<span className="text-xl font-bold">{event}</span>
-													<span className="flex items-center justify-center gap-1 text-xl font-bold">
-														<QualMatch className="size-8" />{" "}
-														{match.replace("qm", "Qual ")}
-														<Dot className="size-5" />
-														<Bot className="size-6.5" /> {m.team}
-													</span>
-													<span className="flex items-center gap-1 text-sm text-muted-foreground">
-														<MapPin className="size-4" /> {position}
-														<Dot className="size-4" />
-														<User className="size-4" /> {m.scouter}
-													</span>
-													<QRCodeSVG
-														value={m.qrData}
-														size={300}
-														level="H"
-														imageSettings={{
-															src: "https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png",
-															height: 70,
-															width: 70,
-															excavate: true,
-														}}
-														className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
-													/>
-												</div>
-											</CarouselItem>
-										);
-									})}
-								</CarouselContent>
-								<CarouselPrevious />
-								<CarouselNext />
-							</Carousel>
+							{saved.length === 0 ? (
+								<span className="flex items-center justify-center gap-1 text-xl font-bold">
+									No QR codes saved
+									<FaceSlightlyFrowning />
+								</span>
+							) : (
+								<Carousel className="mx-auto w-full max-w-xs">
+									<CarouselContent>
+										{saved.map((m) => {
+											const [event, match, pos] = m.key.split("_");
+											return (
+												<CarouselItem key={m.key}>
+													<div className="flex flex-col items-center gap-2">
+														<span className="text-xl font-bold">{event}</span>
+														<span className="flex items-center justify-center gap-1 text-xl font-bold">
+															<QualMatch className="size-8" />{" "}
+															{match.replace("qm", "")}
+															<Dot className="size-5" />
+															<Bot className="size-6.5" /> {m.team}
+														</span>
+														<span className="flex items-center gap-1 text-sm text-muted-foreground">
+															<MapPin className="size-4" /> {pos}
+															<Dot className="size-4" />
+															<User className="size-4" /> {m.scouter}
+														</span>
+														<QRCodeSVG
+															value={m.qrData}
+															size={300}
+															level="H"
+															imageSettings={qrImage}
+															className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
+														/>
+													</div>
+												</CarouselItem>
+											);
+										})}
+									</CarouselContent>
+									<CarouselPrevious />
+									<CarouselNext />
+								</Carousel>
+							)}
 						</div>
 					</TabsContent>
 				</Tabs>
