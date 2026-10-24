@@ -49,6 +49,8 @@ export function HoldButton({
 		clearTimeout(timer.current);
 	};
 
+	const currentLabel = done ? doneLabel : holding ? "Keep holding…" : idleLabel;
+
 	return (
 		<Button
 			disabled={disabled}
@@ -75,8 +77,18 @@ export function HoldButton({
 					transition: holding ? `width ${HOLD_MS}ms linear` : "none",
 				}}
 			/>
-			<span className="relative">
-				{done ? doneLabel : holding ? "Keep holding…" : idleLabel}
+			<span className="relative grid">
+				{[idleLabel, "Keep holding…", doneLabel].map((text) => (
+					<span
+						key={text}
+						className={cn(
+							"col-start-1 row-start-1",
+							text !== currentLabel && "invisible",
+						)}
+					>
+						{text}
+					</span>
+				))}
 			</span>
 		</Button>
 	);
