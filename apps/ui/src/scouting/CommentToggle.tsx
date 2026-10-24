@@ -3,6 +3,7 @@ import { ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 export const COMMENTS = [
+	"Not on Field",
 	"Stopped Moving",
 	"Dead <45s",
 	"Dead >45s",
@@ -11,14 +12,13 @@ export const COMMENTS = [
 	"Holds Both Game Pieces",
 	"Slow Drive",
 	"Fast Drive",
-	"Good Driving",
 	"Bad Driving",
+	"Good Driving",
 	"Drops Game Pieces",
 	"Lots of Fouls",
 	"Tipped",
 	"Didn't Move",
 	"Broken",
-	"Did Not Show Up",
 	"Played Defense",
 	"Received Defense",
 	"Yellow Card",
@@ -33,7 +33,7 @@ export function CommentToggle({ comment }: { comment: string }) {
 			onClick={() => setJustClicked(true)}
 			onPointerLeave={() => setJustClicked(false)}
 			className={cn(
-				"data-pressed:bg-primary data-pressed:text-white",
+				"h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm data-pressed:bg-primary data-pressed:text-white",
 				!justClicked && "data-pressed:hover:bg-destructive",
 			)}
 		>

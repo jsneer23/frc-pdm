@@ -40,8 +40,10 @@ function CoralButton({
 	increment,
 }: CoralButtonProps) {
 	return (
-		<div className="flex items-center gap-2">
-			<FieldLabel className="w-8 text-lg font-semibold">{label}</FieldLabel>
+		<div className="relative flex items-center gap-2">
+			<FieldLabel className="absolute right-full w-8 text-[18px] font-semibold">
+				{label}
+			</FieldLabel>
 			<Button
 				size="icon"
 				aria-label="Decrease"
@@ -49,7 +51,7 @@ function CoralButton({
 			>
 				<Minus />
 			</Button>
-			<span className="flex h-9 w-12 items-center justify-center rounded-md border text-lg font-semibold tabular-nums">
+			<span className="flex h-9 w-12 items-center justify-center rounded-md border text-[16px] font-semibold tabular-nums">
 				{level}
 			</span>
 			<Button
@@ -69,19 +71,17 @@ export function Coral({ levels, setLevels, increment }: CoralProps) {
 	const setAt = (i: number, value: number) =>
 		setLevels(levels.map((v, j) => (j === i ? value : v)));
 	return (
-		<FieldGroup>
-			<Field>
-				{[3, 2, 1, 0].map((i) => (
-					<CoralButton
-						key={i}
-						label={`L${i + 1}`}
-						level={levels[i]}
-						other={total - levels[i]}
-						setLevel={(v) => setAt(i, v)}
-						increment={increment}
-					/>
-				))}
-			</Field>
-		</FieldGroup>
+		<div className="flex flex-col gap-3">
+			{[3, 2, 1, 0].map((i) => (
+				<CoralButton
+					key={i}
+					label={`L${i + 1}`}
+					level={levels[i]}
+					other={total - levels[i]}
+					setLevel={(v) => setAt(i, v)}
+					increment={increment}
+				/>
+			))}
+		</div>
 	);
 }

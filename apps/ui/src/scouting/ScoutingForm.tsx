@@ -1,3 +1,4 @@
+import { Bot, Dot, Hash, MapPin, User } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { COMMENTS, CommentToggle } from "./CommentToggle";
 import { autoPlusOne, Coral, telePlusOne } from "./Coral";
 import { HoldButton } from "./HoldButton";
+import { QualMatch } from "./icon";
 import { fetchTeam } from "./TBA";
 
 const EVENT_CODES = [
@@ -50,8 +52,8 @@ export type EventCode = (typeof EVENT_CODES)[number]["value"];
 type Position = (typeof POSITIONS)[number]["value"];
 
 export function ScoutingForm() {
-	const [tab, setTab] = useState<"setup" | "auto" | "tele" | "qr" | "past">(
-		"setup",
+	const [tab, setTab] = useState<"start" | "auto" | "tele" | "qr" | "saved">(
+		"start",
 	);
 	const [scouterName, setScouterName] = useState("");
 	const [eventCode, setEventCode] = useState<EventCode | null>("2026cacac");
@@ -157,7 +159,7 @@ export function ScoutingForm() {
 		setEndgame("");
 		setComments([]);
 		setConfirmed(false);
-		setTab("setup");
+		setTab("start");
 		setNotes("");
 	}
 
@@ -170,12 +172,12 @@ export function ScoutingForm() {
 		<Card className="mx-auto w-full max-w-2xl gap-4">
 			<BrandHeader
 				title={"FRC 5507 Scouting Form"}
-				description={"Generate a QR code with scouting data."}
+				description={"Generate a scouting data QR code."}
 			/>
 			<CardContent>
 				<Tabs value={tab} onValueChange={(v) => setTab(v)}>
 					<TabsList className="mx-auto">
-						<TabsTrigger value="setup">Setup</TabsTrigger>
+						<TabsTrigger value="start">Start</TabsTrigger>
 						<TabsTrigger value="auto" disabled={!confirmed}>
 							Auto
 						</TabsTrigger>
@@ -185,9 +187,9 @@ export function ScoutingForm() {
 						<TabsTrigger value="qr" disabled={!confirmed}>
 							QR
 						</TabsTrigger>
-						<TabsTrigger value="past">Past Matches</TabsTrigger>
+						<TabsTrigger value="saved">Saved</TabsTrigger>
 					</TabsList>
-					<TabsContent value="setup">
+					<TabsContent value="start">
 						<div className="grid grid-cols-2 gap-4">
 							<TextField
 								id="scouterName"
@@ -267,7 +269,7 @@ export function ScoutingForm() {
 								<span className="text-sm text-muted-foreground">
 									You're Scouting Team:
 								</span>
-								<span className="text-3xl font-bold tabular-nums">
+								<span className="text-center text-3xl font-bold tabular-nums">
 									{message}
 								</span>
 							</div>
@@ -290,65 +292,94 @@ export function ScoutingForm() {
 						</div>
 					</TabsContent>
 					<TabsContent value="auto">
-						<Coral
-							levels={autoCoral}
-							setLevels={setAutoCoral}
-							increment={autoPlusOne}
-						/>
-					</TabsContent>
-					<TabsContent value="tele" className="flex flex-col gap-8">
-						<div className="grid grid-cols-2">
-							<Field>
-								<FieldLabel htmlFor="textarea-message">Coral</FieldLabel>
+						<Field>
+							<FieldLabel
+								htmlFor="textarea-message"
+								className="justify-center text-lg font-semibold"
+							>
+								Coral
+							</FieldLabel>
+							<div className="justify-center flex">
 								<Coral
-									levels={teleCoral}
-									setLevels={setTeleCoral}
-									increment={telePlusOne}
+									levels={autoCoral}
+									setLevels={setAutoCoral}
+									increment={autoPlusOne}
 								/>
+							</div>
+						</Field>
+					</TabsContent>
+					<TabsContent value="tele" className="flex flex-col gap-4">
+						<div className="grid grid-cols-2 justify_center">
+							<Field>
+								<FieldLabel
+									htmlFor="textarea-message"
+									className="justify-center text-lg font-semibold"
+								>
+									Coral
+								</FieldLabel>
+								<div className="justify-center flex">
+									<Coral
+										levels={teleCoral}
+										setLevels={setTeleCoral}
+										increment={telePlusOne}
+									/>
+								</div>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="textarea-message">Climb</FieldLabel>
-								<RadioGroup
-									value={endgame}
-									onValueChange={setEndgame}
-									defaultValue="no_attempt"
-									className="w-fit"
+								<FieldLabel
+									htmlFor="textarea-message"
+									className="justify-center text-lg font-semibold"
 								>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="no_attempt" id="r1" />
-										<Label htmlFor="r1">No Attempt</Label>
-									</div>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="park" id="r2" />
-										<Label htmlFor="r2">Park w/o Attempt</Label>
-									</div>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="shallow_fail" id="r3" />
-										<Label htmlFor="r3">Shallow Attempt w/ Fail</Label>
-									</div>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="shallow_success" id="r4" />
-										<Label htmlFor="r4">Shallow Success</Label>
-									</div>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="deep_fail" id="r5" />
-										<Label htmlFor="r5">Deep Attempt w/Fail</Label>
-									</div>
-									<div className="flex items-center gap-3">
-										<RadioGroupItem value="deep_success" id="r6" />
-										<Label htmlFor="r6">Deep Success</Label>
-									</div>
-								</RadioGroup>
+									Climb
+								</FieldLabel>
+								<div className="flex justify-center">
+									<RadioGroup
+										value={endgame}
+										onValueChange={setEndgame}
+										defaultValue="no_attempt"
+										className="w-fit"
+									>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="no_attempt" id="r1" />
+											<Label htmlFor="r1">No Attempt</Label>
+										</div>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="park" id="r2" />
+											<Label htmlFor="r2">Park w/o Attempt</Label>
+										</div>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="shallow_fail" id="r3" />
+											<Label htmlFor="r3">Shallow Attempt w/ Fail</Label>
+										</div>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="shallow_success" id="r4" />
+											<Label htmlFor="r4">Shallow Success</Label>
+										</div>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="deep_fail" id="r5" />
+											<Label htmlFor="r5">Deep Attempt w/Fail</Label>
+										</div>
+										<div className="flex items-center gap-3">
+											<RadioGroupItem value="deep_success" id="r6" />
+											<Label htmlFor="r6">Deep Success</Label>
+										</div>
+									</RadioGroup>
+								</div>
 							</Field>
 						</div>
 						<Field>
-							<FieldLabel htmlFor="textarea-message">Comments</FieldLabel>
+							<FieldLabel
+								htmlFor="textarea-message"
+								className="justify-center text-lg font-semibold"
+							>
+								Comments
+							</FieldLabel>
 							<ToggleGroup
 								multiple
 								variant="outline"
 								value={comments}
 								onValueChange={setComments}
-								className="flex flex-wrap gap-2"
+								className="justify-center flex flex-wrap gap-2"
 							>
 								{COMMENTS.map((c) => (
 									<CommentToggle key={c} comment={c} />
@@ -356,7 +387,6 @@ export function ScoutingForm() {
 							</ToggleGroup>
 						</Field>
 						<Field>
-							<FieldLabel htmlFor="textarea-message">Comments</FieldLabel>
 							<Textarea
 								id="textarea-message"
 								placeholder="Type additional comments here."
@@ -366,7 +396,19 @@ export function ScoutingForm() {
 						</Field>
 					</TabsContent>
 					<TabsContent value="qr">
-						<div className="flex flex-col gap-6">
+						<div className="flex flex-col items-center gap-2">
+							<span className="flex items-center justify-center gap-1 text-xl font-bold">
+								<QualMatch className="size-8" /> {matchNumber}
+								<Dot className="size-5" />
+								<Bot className="size-6.5" /> {team}
+							</span>
+							<span className="flex items-center gap-1 text-sm text-muted-foreground">
+								<MapPin className="size-4" /> {position}
+								<Dot className="size-4" />
+								<User className="size-4" /> {scouterName}
+							</span>
+						</div>
+						<div className="mt-2 flex flex-col gap-4">
 							<QRCodeSVG
 								value={row}
 								size={300}
@@ -377,7 +419,7 @@ export function ScoutingForm() {
 									width: 70,
 									excavate: true,
 								}}
-								className="mx-auto"
+								className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
 							/>
 							<div className="grid grid-cols-2">
 								<Button onClick={handleSave}>Save QR Code</Button>
@@ -391,43 +433,48 @@ export function ScoutingForm() {
 							</div>
 						</div>
 					</TabsContent>
-					<TabsContent value="past">
-						<Carousel className="mx-auto w-full max-w-xs">
-							<CarouselContent>
-								{saved.map((m) => {
-									const [event, match, position] = m.key.split("_");
-									return (
-										<CarouselItem key={m.key}>
-											<div className="flex flex-col items-center gap-2">
-												<span className="text-xl font-bold">
-													{event} {match.replace("qm", "Qual ")}: {m.team}
-												</span>
-												<span className="text-sm text-muted-foreground">
-													Position: {position}
-												</span>
-												<span className="text-sm text-muted-foreground">
-													Scouted By: {m.scouter}
-												</span>
-												<QRCodeSVG
-													value={m.row}
-													size={300}
-													level="H"
-													imageSettings={{
-														src: "https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png",
-														height: 70,
-														width: 70,
-														excavate: true,
-													}}
-													className="mx-auto"
-												/>
-											</div>
-										</CarouselItem>
-									);
-								})}
-							</CarouselContent>
-							<CarouselPrevious />
-							<CarouselNext />
-						</Carousel>
+					<TabsContent value="saved">
+						<div className="px-12">
+							<Carousel className="mx-auto w-full max-w-xs">
+								<CarouselContent>
+									{saved.map((m) => {
+										const [event, match, position] = m.key.split("_");
+										return (
+											<CarouselItem key={m.key}>
+												<div className="flex flex-col items-center gap-2">
+													<span className="text-xl font-bold">{event}</span>
+													<span className="flex items-center justify-center gap-1 text-xl font-bold">
+														<QualMatch className="size-8" />{" "}
+														{match.replace("qm", "Qual ")}
+														<Dot className="size-5" />
+														<Bot className="size-6.5" /> {m.team}
+													</span>
+													<span className="flex items-center gap-1 text-sm text-muted-foreground">
+														<MapPin className="size-4" /> {position}
+														<Dot className="size-4" />
+														<User className="size-4" /> {m.scouter}
+													</span>
+													<QRCodeSVG
+														value={m.row}
+														size={300}
+														level="H"
+														imageSettings={{
+															src: "https://bicmztrblwpucysepkoq.supabase.co/storage/v1/object/public/images/Beakle.png",
+															height: 70,
+															width: 70,
+															excavate: true,
+														}}
+														className="mx-auto h-auto w-full max-w-xs [&_image]:[clip-path:inset(0_round_2px)]"
+													/>
+												</div>
+											</CarouselItem>
+										);
+									})}
+								</CarouselContent>
+								<CarouselPrevious />
+								<CarouselNext />
+							</Carousel>
+						</div>
 					</TabsContent>
 				</Tabs>
 			</CardContent>
