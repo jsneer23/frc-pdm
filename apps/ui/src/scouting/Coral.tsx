@@ -1,6 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 
 function minusOne(count: number) {
 	if (count > 0) return count - 1;
@@ -71,17 +71,22 @@ export function Coral({ levels, setLevels, increment }: CoralProps) {
 	const setAt = (i: number, value: number) =>
 		setLevels(levels.map((v, j) => (j === i ? value : v)));
 	return (
-		<div className="flex flex-col gap-3">
-			{[3, 2, 1, 0].map((i) => (
-				<CoralButton
-					key={i}
-					label={`L${i + 1}`}
-					level={levels[i]}
-					other={total - levels[i]}
-					setLevel={(v) => setAt(i, v)}
-					increment={increment}
-				/>
-			))}
-		</div>
+		<Field>
+			<FieldLabel className="justify-center text-lg font-semibold">
+				Coral
+			</FieldLabel>
+			<div className="flex flex-col items-center gap-3">
+				{[3, 2, 1, 0].map((i) => (
+					<CoralButton
+						key={i}
+						label={`L${i + 1}`}
+						level={levels[i]}
+						other={total - levels[i]}
+						setLevel={(v) => setAt(i, v)}
+						increment={increment}
+					/>
+				))}
+			</div>
+		</Field>
 	);
 }

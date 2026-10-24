@@ -1,4 +1,4 @@
-import { Bot, Dot, Hash, MapPin, User } from "lucide-react";
+import { Bot, Dot, MapPin, User } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -292,44 +292,21 @@ export function ScoutingForm() {
 						</div>
 					</TabsContent>
 					<TabsContent value="auto">
-						<Field>
-							<FieldLabel
-								htmlFor="textarea-message"
-								className="justify-center text-lg font-semibold"
-							>
-								Coral
-							</FieldLabel>
-							<div className="justify-center flex">
-								<Coral
-									levels={autoCoral}
-									setLevels={setAutoCoral}
-									increment={autoPlusOne}
-								/>
-							</div>
-						</Field>
+						<Coral
+							levels={autoCoral}
+							setLevels={setAutoCoral}
+							increment={autoPlusOne}
+						/>
 					</TabsContent>
 					<TabsContent value="tele" className="flex flex-col gap-4">
 						<div className="grid grid-cols-2 justify_center">
+							<Coral
+								levels={teleCoral}
+								setLevels={setTeleCoral}
+								increment={telePlusOne}
+							/>
 							<Field>
-								<FieldLabel
-									htmlFor="textarea-message"
-									className="justify-center text-lg font-semibold"
-								>
-									Coral
-								</FieldLabel>
-								<div className="justify-center flex">
-									<Coral
-										levels={teleCoral}
-										setLevels={setTeleCoral}
-										increment={telePlusOne}
-									/>
-								</div>
-							</Field>
-							<Field>
-								<FieldLabel
-									htmlFor="textarea-message"
-									className="justify-center text-lg font-semibold"
-								>
+								<FieldLabel className="justify-center text-lg font-semibold">
 									Climb
 								</FieldLabel>
 								<div className="flex justify-center">
