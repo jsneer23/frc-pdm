@@ -58,7 +58,7 @@ export function ScoutingForm() {
 	);
 	const [scouterName, setScouterName] = useState("");
 	const [eventCode, setEventCode] = useState<EventCode | null>("2026cacac");
-	const [matchNumber, setMatchNumber] = useState("");
+	const [matchNumber, setMatchNumber] = useState<string | null>(null);
 	const [position, setPosition] = useState<Position | null>(null);
 	const [confirmed, setConfirmed] = useState(false);
 
@@ -243,14 +243,17 @@ export function ScoutingForm() {
 									</SelectContent>
 								</Select>
 							</Field>
-							<TextField
-								id="matchNumber"
-								label="Match Number"
-								value={matchNumber}
-								onChange={(value) => {
-									setMatchNumber(value);
-								}}
-							/>
+							<Field>
+								<FieldLabel htmlFor={"matchNumber"}>Match Number</FieldLabel>
+								<Input
+									id="matchNumber"
+									inputMode="numeric"
+									placeholder="Match number"
+									aria-label="Match Number"
+									value={matchNumber ?? ""}
+									onChange={(e) => setMatchNumber(e.target.value)}
+								/>
+							</Field>
 							<Field>
 								<FieldLabel>Position</FieldLabel>
 								<Select
