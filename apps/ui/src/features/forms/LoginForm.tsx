@@ -207,6 +207,7 @@ export function LoginForm() {
 	return (
 		<Card>
 			<BrandHeader
+				title="FRC 5507 Onshape Part Exporter"
 				description={
 					email === null
 						? "Sign in with your school email."

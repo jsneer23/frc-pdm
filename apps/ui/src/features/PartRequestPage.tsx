@@ -43,6 +43,7 @@ export function PartRequestPage() {
 	return (
 		<Card className="mx-auto w-full max-w-lg gap-4">
 			<BrandHeader
+				title={"FRC 5507 Onshape Part Exporter"}
 				description={"Send a part to the production queue."}
 				action={
 					<Button

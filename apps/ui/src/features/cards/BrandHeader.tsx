@@ -1,11 +1,12 @@
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type BrandHeaderProps = {
+	title: string;
 	description: string;
 	action?: React.ReactNode;
 };
 
-export function BrandHeader({ description, action }: BrandHeaderProps) {
+export function BrandHeader({ title, description, action }: BrandHeaderProps) {
 	return (
 		<CardHeader className="flex items-center gap-4">
 			<img
@@ -15,7 +16,7 @@ export function BrandHeader({ description, action }: BrandHeaderProps) {
 				className="shrink-0 rounded-lg"
 			/>
 			<div className="grid gap-1.5">
-				<CardTitle>FRC 5507 Onshape Part Exporter</CardTitle>
+				<CardTitle>{title}</CardTitle>
 				<CardDescription>{description}</CardDescription>
 			</div>
 			{action}
