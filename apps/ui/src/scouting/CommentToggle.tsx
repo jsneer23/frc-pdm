@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { useState } from "react";
 import { ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from "@/lib/utils";
 
 export const COMMENTS = [
 	"Not on Field",

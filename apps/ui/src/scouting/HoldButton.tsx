@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const HOLD_COLORS = {
 	primary: {

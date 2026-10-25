@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -20,7 +21,6 @@ import {
 	type RobotRow,
 	robotsQueryOptions,
 } from "@/lib/queries";
-import { cn } from "@/lib/utils";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
