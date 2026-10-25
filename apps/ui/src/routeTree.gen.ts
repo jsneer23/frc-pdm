@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnshapeRouteImport } from './routes/onshape'
-import { Route as ScoutingRouteImport } from './routes/scouting'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +22,31 @@ const OnshapeRoute = OnshapeRouteImport.update({
   path: '/onshape',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ScoutingRoute = ScoutingRouteImport.update({
-  id: '/scouting',
-  path: '/scouting',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onshape': typeof OnshapeRoute
-  '/scouting': typeof ScoutingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onshape': typeof OnshapeRoute
-  '/scouting': typeof ScoutingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/onshape': typeof OnshapeRoute
-  '/scouting': typeof ScoutingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/onshape' | '/scouting'
+  fullPaths: '/' | '/onshape'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/onshape' | '/scouting'
-  id: '__root__' | '/' | '/onshape' | '/scouting'
+  to: '/' | '/onshape'
+  id: '__root__' | '/' | '/onshape'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnshapeRoute: typeof OnshapeRoute
-  ScoutingRoute: typeof ScoutingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,20 +65,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnshapeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/scouting': {
-      id: '/scouting'
-      path: '/scouting'
-      fullPath: '/scouting'
-      preLoaderRoute: typeof ScoutingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnshapeRoute: OnshapeRoute,
-  ScoutingRoute: ScoutingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
