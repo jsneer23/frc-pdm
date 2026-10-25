@@ -44,3 +44,11 @@ mise exec "pnpm@$v" -- pnpm build
 
 echo "pnpm is now $v. Commit mise.toml, apps/ui/package.json, and the lockfile together."
 '''
+
+[tasks."node:update"]
+description = "Change the Node version in mise.toml, then verify"
+usage = 'arg "<version>" help="The Node major version, for example 24"'
+run = [
+  "mise use node@{{usage.version}}",
+  "node --version",
+]
