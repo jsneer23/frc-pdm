@@ -27,7 +27,7 @@ type Options = {
 	onSelect: (selection: OnshapeSelection) => void;
 };
 
-export function useFakeSelection({ kind, onSelect }: Options) {
+function useFakeSelection({ kind, onSelect }: Options) {
 	const [selection, setSelection] = useState<OnshapeSelection | null>(null);
 	const [isSelecting, setIsSelecting] = useState(false);
 	const timerRef = useRef<number | null>(null);

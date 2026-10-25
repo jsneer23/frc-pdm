@@ -1,8 +1,6 @@
 export type SelectionType = "face" | "body";
 export type EntityType = "FACE" | "undefined";
 
-export type MachineId = (typeof PART_TYPES)[PartTypeId]["machines"][number];
-
 type ProcessDef = {
 	label: string;
 	description: string;
