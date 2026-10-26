@@ -1,5 +1,6 @@
 [tools]
 biome = "2.5.9"
+deno = "2.9.8"
 node = "24"
 pnpm = "12.11.2"
 supabase = "2.121.0"
