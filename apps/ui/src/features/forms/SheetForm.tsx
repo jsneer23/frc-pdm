@@ -21,6 +21,7 @@ import {
 	type RobotRow,
 	robotsQueryOptions,
 } from "@/lib/queries";
+import { supabase } from "@/lib/supabase";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
@@ -213,14 +214,14 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		const request: PartRequest = {
 			document: {
 				userId: onshapeContext.userId,
-				documentId: onshapeContext.documentId,
-				workspaceId: onshapeContext.workspaceId,
-				elementId: onshapeContext.elementId,
+				documentId: onshapeContext.documentId, // document
+				workspaceId: onshapeContext.workspaceId, // branch
+				elementId: onshapeContext.elementId, // tab
 			},
 			selection: {
 				kind: selection.entityType === "FACE" ? "face" : "body",
 				selectionId: selection.selectionId,
-				microversionId: selection.microversionId,
+				microversionId: selection.microversionId, // exact state of document in between each version. updates upon every edit
 			},
 			partName: trimmedName,
 			subsystemId,
@@ -231,6 +232,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		};
 
 		console.log(request);
+		supabase.functions.invoke("onshape/export", { body: {} });
 	}
 
 	function clearError(...fields: (keyof FormErrors)[]) {

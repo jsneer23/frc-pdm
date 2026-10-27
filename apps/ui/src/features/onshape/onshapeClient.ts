@@ -1,6 +1,8 @@
 const params = new URLSearchParams(window.location.search);
 
 export const onshapeContext = {
+	// documentId, workspaceId, and elementId are passed from onshape to the app via the url
+	// ?documentId={$documentId}&workspaceId={$workspaceOrVersionId}&elementId={$elementId}
 	userId: params.get("userId") ?? "",
 	documentId: params.get("documentId") ?? "",
 	workspaceId: params.get("workspaceId") ?? "",
