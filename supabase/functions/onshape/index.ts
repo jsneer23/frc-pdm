@@ -38,5 +38,5 @@ async function handleExport(ctx: SupabaseContext): Promise<Response> {
     return Response.json({ error: "Not a team member" }, { status: 403 });
   }
 
-  return Response.json({ memberId: member.id });
+  return Response.json({ partNumber: "26O-CHS-P001" });
 }

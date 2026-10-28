@@ -1,6 +1,9 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
+import { Loader2Icon } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Field,
@@ -114,6 +117,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 	const [weightLb, setWeightLb] = useState<string>("");
 	const [errors, setErrors] = useState<FormErrors>({});
 	const lastSelectionId = useRef<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const robot = robots.find((r) => r.code === robotCode);
 	const availableSubsystems = robot?.subsystems ?? [];
@@ -165,7 +169,20 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		);
 	}
 
-	function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+	async function functionErrorMessage(error: unknown): Promise<string> {
+		if (error instanceof FunctionsHttpError) {
+			try {
+				const body = await error.context.json();
+				if (typeof body?.error === "string") return body.error;
+			} catch {
+				// The response wasn't JSON; fall through to the general message.
+			}
+			return "Something went wrong submitting the part.";
+		}
+		return "Couldn't reach the server. Check the queue before resubmitting.";
+	}
+
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		const nextErrors: FormErrors = {};
@@ -232,7 +249,37 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		};
 
 		console.log(request);
-		supabase.functions.invoke("onshape/export", { body: {} });
+		setIsSubmitting(true);
+		try {
+			const { data, error } = await supabase.functions.invoke<{
+				partNumber: string;
+			}>("onshape/export", {
+				body: {},
+			});
+			if (error) {
+				console.error(error);
+				toast.error(await functionErrorMessage(error));
+				return;
+			}
+			if (typeof data?.partNumber === "string") {
+				toast.success(`Part ${data.partNumber} created`, {
+					duration: 10000,
+					action: {
+						label: "Copy",
+						onClick: () =>
+							navigator.clipboard
+								.writeText(data.partNumber)
+								.then(() => toast.success("Copied"))
+								.catch(() =>
+									toast.error("Couldn't copy. Select the number and press ⌘C."),
+								),
+					},
+				});
+			}
+			console.log(data);
+		} finally {
+			setIsSubmitting(false);
+		}
 	}
 
 	function clearError(...fields: (keyof FormErrors)[]) {
@@ -407,8 +454,11 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 					</div>
 				</FieldGroup>
 			</PartDetailsCard>
-			<Button type="submit" className="w-full">
-				Submit Request
+			<Button type="submit" className="w-full" disabled={isSubmitting}>
+				{isSubmitting && (
+					<Loader2Icon data-icon="inline-start" className="animate-spin" />
+				)}
+				{isSubmitting ? "Submitting…" : "Submit Request"}
 			</Button>
 		</form>
 	);
