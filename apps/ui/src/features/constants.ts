@@ -33,23 +33,23 @@ export const PART_TYPES = {
 export type PartTypeId = keyof typeof PART_TYPES;
 
 export type PartRequest = {
-	document: {
+	onshape: {
 		userId: string;
 		documentId: string;
 		workspaceId: string;
 		elementId: string;
-	};
-	selection: {
 		kind: string;
 		selectionId: string;
 		microversionId: string;
 	};
-	subsystemId: number;
-	partName: string;
-	machineId: number;
-	stockId: number;
-	quantity: number;
-	cadMassLb: number;
+	part: {
+		subsystemId: number;
+		partName: string;
+		machineId: number;
+		stockId: number;
+		quantity: number;
+		cadMassLb: number;
+	};
 };
 
 export type PartRequestResponse =

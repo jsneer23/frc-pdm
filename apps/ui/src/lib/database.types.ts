@@ -121,7 +121,6 @@ export type Database = {
       }
       part_exports: {
         Row: {
-          cad_mass_g: number | null
           configuration: string | null
           document_id: string
           element_id: string
@@ -137,7 +136,6 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          cad_mass_g?: number | null
           configuration?: string | null
           document_id: string
           element_id: string
@@ -153,7 +151,6 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          cad_mass_g?: number | null
           configuration?: string | null
           document_id?: string
           element_id?: string
@@ -234,6 +231,7 @@ export type Database = {
       parts: {
         Row: {
           actual_mass_g: number | null
+          cad_mass_g: number | null
           completer_id: number | null
           created_at: string
           deprecated_at: string | null
@@ -250,6 +248,7 @@ export type Database = {
         }
         Insert: {
           actual_mass_g?: number | null
+          cad_mass_g?: number | null
           completer_id?: number | null
           created_at?: string
           deprecated_at?: string | null
@@ -266,6 +265,7 @@ export type Database = {
         }
         Update: {
           actual_mass_g?: number | null
+          cad_mass_g?: number | null
           completer_id?: number | null
           created_at?: string
           deprecated_at?: string | null
@@ -425,6 +425,7 @@ export type Database = {
       parts_with_number: {
         Row: {
           actual_mass_g: number | null
+          cad_mass_g: number | null
           completer_id: number | null
           created_at: string | null
           deprecated_at: string | null

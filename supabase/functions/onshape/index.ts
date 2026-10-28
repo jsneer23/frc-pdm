@@ -1,42 +1,251 @@
 import { type SupabaseContext, withSupabase } from "@supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, TablesInsert } from "../_shared/database.types.ts";
+
+// part attributes stored in parts table
+type PartInsert = Pick<
+	TablesInsert<"parts">,
+	"subsystem_id" | "stock_id" | "machine_id" | "qty" | "name" | "cad_mass_g"
+>;
+
+// onshape attributes stored in part_exports
+type OnshapeFields = Pick<
+	TablesInsert<"part_exports">,
+	| "onshape_user_id"
+	| "document_id"
+	| "workspace_id"
+	| "element_id"
+	| "selection_id"
+	| "microversion_id"
+	| "kind"
+>;
+
+// onshape users work in lbs but our scale is in grams
+const GRAMS_PER_POUND = 453.59237;
 
 export default {
-  fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    const path = new URL(req.url).pathname;
+	fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
+		const path = new URL(req.url).pathname;
 
-    if (req.method === "POST" && path.endsWith("/export")) {
-      return await handleExport(ctx);
-    }
+		if (req.method === "POST" && path.endsWith("/export")) {
+			return await handleExport(req, ctx);
+		}
 
-    return Response.json({ error: "Not found" }, { status: 404 });
-  }),
+		return Response.json({ error: "Not found" }, { status: 404 });
+	}),
 };
 
-async function handleExport(ctx: SupabaseContext): Promise<Response> {
-  const userId = ctx.userClaims?.id;
-  if (!userId) {
-    return Response.json({ error: "Not signed in" }, { status: 401 });
-  }
+async function handleExport(
+	req: Request,
+	ctx: SupabaseContext,
+): Promise<Response> {
+	const db = ctx.supabase as SupabaseClient<Database>;
+	const admin = ctx.supabaseAdmin as SupabaseClient<Database>;
 
-  // ctx.supabase acts as the caller, so RLS applies. members is readable only
-  // by members, so a non-member gets no row back.
-  const { data: member, error } = await ctx.supabase
-    .from("members")
-    .select("id")
-    .eq("auth_user_id", userId)
-    .maybeSingle();
+	const userId = ctx.userClaims?.id;
+	if (!userId) {
+		return Response.json({ error: "Not signed in" }, { status: 401 });
+	}
 
-  if (error) {
-    console.error("Member lookup failed:", error);
-    return Response.json(
-      { error: "Could not check membership" },
-      { status: 500 },
-    );
-  }
+	// ctx.supabase acts as the caller, so RLS applies. members is readable only
+	// by members, so a non-member gets no row back.
+	const { data: member, error: memberError } = await db
+		.from("members")
+		.select("id")
+		.eq("auth_user_id", userId)
+		.maybeSingle();
 
-  if (member === null) {
-    return Response.json({ error: "Not a team member" }, { status: 403 });
-  }
+	if (memberError) {
+		console.error("Member lookup failed:", memberError);
+		return Response.json(
+			{ error: "Could not check membership" },
+			{ status: 500 },
+		);
+	}
+	if (member === null) {
+		return Response.json({ error: "Not a team member" }, { status: 403 });
+	}
 
-  return Response.json({ partNumber: "26O-CHS-P001" });
+	// read and check the request body
+	let body: unknown;
+	try {
+		body = await req.json();
+	} catch {
+		return Response.json(
+			{ error: "Request body must be JSON." },
+			{ status: 400 },
+		);
+	}
+
+	const parsed = parseExportRequest(body);
+	if (typeof parsed === "string") {
+		return Response.json({ error: parsed }, { status: 400 });
+	}
+
+	// insert part as the caller and get id of the insert
+	const { data: part, error: insertError } = await db
+		.from("parts")
+		.insert(parsed.part)
+		.select("id, machines(file_format)")
+		.single();
+
+	if (insertError) return insertErrorResponse(insertError);
+
+	// read assigned part number from db
+	const { data: numbered, error: numberError } = await db
+		.from("parts_with_number")
+		.select("part_number")
+		.eq("id", part.id)
+		.single();
+
+	if (numberError || numbered.part_number === null) {
+		console.error("Part number lookup failed:", numberError);
+		return Response.json(
+			{
+				error:
+					"The part was created, but its number couldn't be read. Check the queue.",
+			},
+			{ status: 500 },
+		);
+	}
+
+	// 5. Record the Onshape selection as the server (part_exports is planned to
+	// be server-only). file_format is the machine's setting at this moment.
+	// If this fails, the part still exists; report it instead of failing.
+	const { error: exportError } = await admin.from("part_exports").insert({
+		...parsed.onshape,
+		part_id: part.id,
+		file_format: part.machines.file_format,
+	});
+
+	if (exportError) {
+		console.error("Export row insert failed:", exportError);
+		return Response.json(
+			{
+				partId: part.id,
+				partNumber: numbered.part_number,
+				warning: "The part was created, but its Onshape details weren't saved.",
+			},
+			{ status: 201 },
+		);
+	}
+
+	return Response.json(
+		{ partId: part.id, partNumber: numbered.part_number },
+		{ status: 201 },
+	);
+}
+
+function parseExportRequest(
+	body: unknown,
+): { part: PartInsert; onshape: OnshapeFields } | string {
+	if (!isObject(body)) return "Request body must be an object.";
+	const { part: p, onshape: o } = body;
+
+	console.log("export body:", JSON.stringify(p));
+
+	if (!isObject(p)) return "part is required.";
+	if (!isObject(o)) return "onshape is required.";
+
+	// part
+	if (!isNonEmptyString(p.partName)) return "partName is required.";
+	if (!isPositiveInteger(p.subsystemId)) {
+		return "subsystemId must be a positive whole number.";
+	}
+	if (!isPositiveInteger(p.stockId)) {
+		return "stockId must be a positive whole number.";
+	}
+	if (!isPositiveInteger(p.machineId)) {
+		return "machineId must be a positive whole number.";
+	}
+	if (!isPositiveInteger(p.quantity)) {
+		return "quantity must be a positive whole number.";
+	}
+	if (
+		typeof p.cadMassLb !== "number" ||
+		!Number.isFinite(p.cadMassLb) ||
+		p.cadMassLb <= 0
+	) {
+		return "cadMassLb must be a positive number.";
+	}
+
+	// onshape
+	if (!isNonEmptyString(o.userId)) return "onshape.userId is required.";
+	if (!isNonEmptyString(o.documentId)) return "onshape.documentId is required.";
+	if (!isNonEmptyString(o.workspaceId)) {
+		return "onshape.workspaceId is required.";
+	}
+	if (!isNonEmptyString(o.elementId)) return "onshape.elementId is required.";
+	if (!isNonEmptyString(o.selectionId)) {
+		return "onshape.selectionId is required.";
+	}
+	if (!isNonEmptyString(o.microversionId)) {
+		return "onshape.microversionId is required.";
+	}
+	if (o.kind !== "face" && o.kind !== "body") {
+		return 'onshape.kind must be "face" or "body".';
+	}
+
+	// build new object from the checked fields only
+	// ...part would let a caller set any column
+	// also need to translate from camel case to underscores
+	return {
+		part: {
+			name: p.partName.trim(),
+			subsystem_id: p.subsystemId,
+			stock_id: p.stockId,
+			machine_id: p.machineId,
+			qty: p.quantity,
+			cad_mass_g: Math.round(p.cadMassLb * GRAMS_PER_POUND * 10) / 10,
+		},
+		onshape: {
+			onshape_user_id: o.userId,
+			document_id: o.documentId,
+			workspace_id: o.workspaceId,
+			element_id: o.elementId,
+			selection_id: o.selectionId,
+			microversion_id: o.microversionId,
+			kind: o.kind,
+		},
+	};
+}
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === "string" && value.trim() !== "";
+}
+
+function isPositiveInteger(value: unknown): value is number {
+	return Number.isInteger(value) && (value as number) > 0;
+}
+
+// convert postgres error codes to json response
+function insertErrorResponse(error: { code?: string; message: string }) {
+	switch (error.code) {
+		case "P0001": // raised exception in assign_part_number
+			return Response.json({ error: error.message }, { status: 400 });
+		case "23503": // foreign key: subsystem, stock, or machine doesn't exist
+			return Response.json(
+				{ error: "That subsystem, stock, or machine doesn't exist." },
+				{ status: 400 },
+			);
+		case "23514": // check constraint, e.g. qty out of range
+			return Response.json(
+				{ error: "One of the values is out of range." },
+				{ status: 400 },
+			);
+		case "42501": // privileges or RLS refused the insert
+			return Response.json(
+				{ error: "You don't have permission to add parts." },
+				{ status: 403 },
+			);
+		default:
+			console.error("Part insert failed:", error);
+			return Response.json(
+				{ error: "Could not create the part." },
+				{ status: 500 },
+			);
+	}
 }

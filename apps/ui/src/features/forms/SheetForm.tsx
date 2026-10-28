@@ -144,7 +144,8 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		resetPartDetails("");
 
 		// clear onshape selection
-		if (machines[next].selection !== machineDef.selection) clear();
+		if (machines[next].selection !== machineDef.selection)
+			clearOnshapeSelection();
 	}
 
 	function handleMaterialChange(next: string) {
@@ -229,32 +230,34 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 
 		// Request
 		const request: PartRequest = {
-			document: {
+			onshape: {
 				userId: onshapeContext.userId,
 				documentId: onshapeContext.documentId, // document
 				workspaceId: onshapeContext.workspaceId, // branch
 				elementId: onshapeContext.elementId, // tab
-			},
-			selection: {
 				kind: selection.entityType === "FACE" ? "face" : "body",
 				selectionId: selection.selectionId,
 				microversionId: selection.microversionId, // exact state of document in between each version. updates upon every edit
 			},
-			partName: trimmedName,
-			subsystemId,
-			machineId,
-			stockId,
-			quantity: qty,
-			cadMassLb: weight,
+			part: {
+				partName: trimmedName,
+				subsystemId,
+				machineId,
+				stockId,
+				quantity: qty,
+				cadMassLb: weight,
+			},
 		};
 
 		console.log(request);
 		setIsSubmitting(true);
 		try {
 			const { data, error } = await supabase.functions.invoke<{
+				partId: number;
 				partNumber: string;
+				warning?: string;
 			}>("onshape/export", {
-				body: {},
+				body: request,
 			});
 			if (error) {
 				console.error(error);
@@ -275,6 +278,11 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 								),
 					},
 				});
+				if (data.warning) {
+					toast.warning(data.warning);
+				}
+				resetPartDetails("");
+				clearOnshapeSelection();
 			}
 			console.log(data);
 		} finally {
@@ -290,7 +298,13 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		});
 	}
 
-	const { selection, isSelecting, start, cancel, clear } = useOnshapeSelection({
+	const {
+		selection,
+		isSelecting,
+		start,
+		cancel,
+		clear: clearOnshapeSelection,
+	} = useOnshapeSelection({
 		kind: machineDef.selection,
 		onSelect: (next) => {
 			if (next.selectionId !== lastSelectionId.current) {
