@@ -1,5 +1,8 @@
 {
-  "recommendations": [
-    "denoland.vscode-deno"
-  ]
+	"recommendations": [
+		"biomejs.biome",
+		"bradlc.vscode-tailwindcss",
+		"dbaeumer.vscode-eslint",
+		"denoland.vscode-deno"
+	]
 }
