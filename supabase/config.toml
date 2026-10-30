@@ -425,6 +425,12 @@ entrypoint = "./functions/onshape/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/onshape/*.html" ]
 
+[functions.onshape-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/onshape-webhook/deno.json"
+entrypoint = "./functions/onshape-webhook/index.ts"
+
 [auth.email.template.magic_link]
 subject = "Your sign-in code"
 content_path = "./supabase/templates/otp_token.html"

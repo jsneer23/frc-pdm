@@ -56,3 +56,33 @@ run = [
   "mise use node@{{usage.version}}",
   "node --version",
 ]
+
+[tasks."functions:serve"]
+description = "Serve all Edge Functions locally (needs `supabase start`)"
+run = "supabase functions serve"
+
+[tasks."functions:check"]
+description = "Type-check every Edge Function"
+run = [
+	"cd supabase/functions/onshape && deno check index.ts",
+	"cd supabase/functions/onshape-webhook && deno check index.ts",
+]
+
+[tasks."functions:deploy"]
+description = "Type-check, then deploy both Edge Functions"
+depends = ["functions:check"]
+run = [
+	"supabase functions deploy onshape",
+	"supabase functions deploy onshape-webhook",
+]
+
+[tasks."functions:secrets"]
+description = "Push secrets to the remote project (refuses if the dev flag is in the file)"
+run = """
+if grep -qi '^dev=' supabase/functions/.env; then
+  echo 'The dev flag is in supabase/functions/.env; move it to onshape/.env.' >&2
+  exit 1
+fi
+supabase secrets set --env-file supabase/functions/.env
+supabase secrets list
+"""

@@ -1,6 +1,7 @@
 import { type SupabaseContext, withSupabase } from "@supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "../_shared/database.types.ts";
+import { startStepExport } from "./onshapeApi.ts";
 
 // part attributes stored in parts table
 type PartInsert = Pick<
@@ -18,6 +19,7 @@ type OnshapeFields = Pick<
 	| "selection_id"
 	| "microversion_id"
 	| "kind"
+	| "occurrence_path"
 >;
 
 // onshape users work in lbs but our scale is in grams
@@ -109,31 +111,54 @@ async function handleExport(
 		);
 	}
 
-	// 5. Record the Onshape selection as the server (part_exports is planned to
-	// be server-only). file_format is the machine's setting at this moment.
-	// If this fails, the part still exists; report it instead of failing.
+	// Start the export before writing part_exports, so the row is written
+	// once: with its translation ID, or with the reason the export didn't start.
+	const started = await startStepExport({
+		documentId: parsed.onshape.document_id,
+		workspaceId: parsed.onshape.workspace_id,
+		elementId: parsed.onshape.element_id,
+		occurrencePath: parsed.onshape.occurrence_path,
+	});
+	if (typeof started === "string") {
+		console.error("Onshape export didn't start:", started);
+	}
+
+	const exportResult =
+		typeof started === "string"
+			? { status: "failed" as const, failure_reason: started }
+			: { translation_id: started.translationId };
+
+	// part_exports is server-only, so write it with the admin client.
+	// file_format is copied from the machine now, so later machine edits don't change this export.
 	const { error: exportError } = await admin.from("part_exports").insert({
 		...parsed.onshape,
+		...exportResult,
 		part_id: part.id,
 		file_format: part.machines.file_format,
 	});
+
+	const created = { partId: part.id, partNumber: numbered.part_number };
 
 	if (exportError) {
 		console.error("Export row insert failed:", exportError);
 		return Response.json(
 			{
-				partId: part.id,
-				partNumber: numbered.part_number,
+				...created,
 				warning: "The part was created, but its Onshape details weren't saved.",
 			},
 			{ status: 201 },
 		);
 	}
-
-	return Response.json(
-		{ partId: part.id, partNumber: numbered.part_number },
-		{ status: 201 },
-	);
+	if (typeof started === "string") {
+		return Response.json(
+			{
+				...created,
+				warning: "The part was created, but its file export didn't start.",
+			},
+			{ status: 201 },
+		);
+	}
+	return Response.json(created, { status: 201 });
 }
 
 function parseExportRequest(
@@ -141,8 +166,6 @@ function parseExportRequest(
 ): { part: PartInsert; onshape: OnshapeFields } | string {
 	if (!isObject(body)) return "Request body must be an object.";
 	const { part: p, onshape: o } = body;
-
-	console.log("export body:", JSON.stringify(p));
 
 	if (!isObject(p)) return "part is required.";
 	if (!isObject(o)) return "onshape is required.";
@@ -182,6 +205,9 @@ function parseExportRequest(
 	if (!isNonEmptyString(o.microversionId)) {
 		return "onshape.microversionId is required.";
 	}
+	if (!isNonEmptyString(o.occurrencePath)) {
+		return "onshape.occurrencePath is required.";
+	}
 	if (o.kind !== "face" && o.kind !== "body") {
 		return 'onshape.kind must be "face" or "body".';
 	}
@@ -206,10 +232,11 @@ function parseExportRequest(
 			selection_id: o.selectionId,
 			microversion_id: o.microversionId,
 			kind: o.kind,
+			occurrence_path: o.occurrencePath,
 		},
 	};
 }
-function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
 

@@ -24,7 +24,7 @@ export function onOnshapeMessage(listener: Listener) {
 
 window.addEventListener("message", (event) => {
 	if (event.origin !== onshapeContext.server) return;
-	console.log("[onshape]", event.data);
+	console.log("[onshape]", JSON.stringify(event.data, null, 2));
 	for (const listener of listeners) listener(event.data);
 });
 
