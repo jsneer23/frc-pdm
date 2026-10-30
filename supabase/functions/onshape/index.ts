@@ -1,7 +1,12 @@
 import { type SupabaseContext, withSupabase } from "@supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "../_shared/database.types.ts";
-import { startStepExport } from "./onshapeApi.ts";
+import { startStepExport } from "../_shared/onshapeApi.ts";
+import {
+	isNonEmptyString,
+	isObject,
+	isPositiveInteger,
+} from "../_shared/validators.ts";
 
 // part attributes stored in parts table
 type PartInsert = Pick<
@@ -235,17 +240,6 @@ function parseExportRequest(
 			occurrence_path: o.occurrencePath,
 		},
 	};
-}
-export function isObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function isNonEmptyString(value: unknown): value is string {
-	return typeof value === "string" && value.trim() !== "";
-}
-
-function isPositiveInteger(value: unknown): value is number {
-	return Number.isInteger(value) && (value as number) > 0;
 }
 
 // convert postgres error codes to json response
