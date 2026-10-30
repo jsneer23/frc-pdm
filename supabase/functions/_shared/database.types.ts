@@ -125,14 +125,18 @@ export type Database = {
           document_id: string
           element_id: string
           exported_at: string
+          failure_reason: string | null
           file_format: Database["public"]["Enums"]["export_format"]
           file_path: string | null
           id: number
           kind: Database["public"]["Enums"]["part_kind"]
           microversion_id: string
+          occurrence_path: string
           onshape_user_id: string
           part_id: number
           selection_id: string
+          status: Database["public"]["Enums"]["export_status"]
+          translation_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -140,14 +144,18 @@ export type Database = {
           document_id: string
           element_id: string
           exported_at?: string
+          failure_reason?: string | null
           file_format: Database["public"]["Enums"]["export_format"]
           file_path?: string | null
           id?: never
           kind: Database["public"]["Enums"]["part_kind"]
           microversion_id: string
+          occurrence_path: string
           onshape_user_id: string
           part_id: number
           selection_id: string
+          status?: Database["public"]["Enums"]["export_status"]
+          translation_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -155,14 +163,18 @@ export type Database = {
           document_id?: string
           element_id?: string
           exported_at?: string
+          failure_reason?: string | null
           file_format?: Database["public"]["Enums"]["export_format"]
           file_path?: string | null
           id?: never
           kind?: Database["public"]["Enums"]["part_kind"]
           microversion_id?: string
+          occurrence_path?: string
           onshape_user_id?: string
           part_id?: number
           selection_id?: string
+          status?: Database["public"]["Enums"]["export_status"]
+          translation_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -499,6 +511,7 @@ export type Database = {
     }
     Enums: {
       export_format: "dwg" | "dxf" | "step"
+      export_status: "exporting" | "done" | "failed"
       part_kind: "face" | "body"
       part_status: "waiting_on_order" | "ready" | "in_progress" | "completed"
       robot_kind: "alpha" | "beta" | "competition" | "offseason"
@@ -630,6 +643,7 @@ export const Constants = {
   public: {
     Enums: {
       export_format: ["dwg", "dxf", "step"],
+      export_status: ["exporting", "done", "failed"],
       part_kind: ["face", "body"],
       part_status: ["waiting_on_order", "ready", "in_progress", "completed"],
       robot_kind: ["alpha", "beta", "competition", "offseason"],

@@ -41,6 +41,7 @@ export type PartRequest = {
 		kind: string;
 		selectionId: string;
 		microversionId: string;
+		occurrencePath: string;
 	};
 	part: {
 		subsystemId: number;

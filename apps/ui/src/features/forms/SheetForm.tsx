@@ -238,6 +238,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				kind: selection.entityType === "FACE" ? "face" : "body",
 				selectionId: selection.selectionId,
 				microversionId: selection.microversionId, // exact state of document in between each version. updates upon every edit
+				occurrencePath: selection.occurrencePath,
 			},
 			part: {
 				partName: trimmedName,

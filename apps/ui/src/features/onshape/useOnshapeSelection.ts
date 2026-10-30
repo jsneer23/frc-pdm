@@ -8,6 +8,7 @@ export type OnshapeSelection = {
 	selectionId: string; // face ID or part ID
 	entityType: EntityType;
 	microversionId: string;
+	occurrencePath: string;
 };
 
 type RequestedSelectionMessage = {
@@ -19,6 +20,7 @@ type RequestedSelectionMessage = {
 		selectionId: string;
 		entityType: EntityType;
 		workspaceMicroversionId: string;
+		occurrencePath: string[];
 	}[];
 };
 
@@ -47,6 +49,7 @@ function useFakeSelection({ kind, onSelect }: Options) {
 				selectionId: "S2H2I_TEST",
 				entityType: kind === "face" ? "FACE" : "undefined",
 				microversionId: "55071a44bda7eb00b1963ce7",
+				occurrencePath: "Mfo9ZFYspBjSQwlEr.I9Knb2G4JGJZuQeTt",
 			};
 			setSelection(next);
 			setIsSelecting(false);
@@ -98,6 +101,7 @@ function useRealSelection({ kind, onSelect }: Options) {
 				selectionId: first.selectionId,
 				entityType: first.entityType,
 				microversionId: first.workspaceMicroversionId,
+				occurrencePath: first.occurrencePath.join("."),
 			};
 			setSelection(next);
 			onSelectRef.current(next);
