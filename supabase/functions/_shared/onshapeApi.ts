@@ -1,4 +1,4 @@
-import { isObject, isStringArray } from "./validators.ts";
+import { isObject, isOnshapeId, isStringArray } from "./validators.ts";
 
 type OnshapeRequest = {
 	method?: "GET" | "POST";
@@ -8,6 +8,16 @@ type OnshapeRequest = {
 
 const ONSHAPE_API = "https://cad.onshape.com/api/v17";
 const isFake = () => Deno.env.get("ONSHAPE_FAKE") === "true";
+
+// builds api path and encodes every value, so "/", "?", and "#" inside
+// a value can't add path segments or a query string
+function apiPath(strings: TemplateStringsArray, ...values: string[]): string {
+	let path = strings[0];
+	values.forEach((value, i) => {
+		path += encodeURIComponent(value) + strings[i + 1];
+	});
+	return path;
+}
 
 async function onshapeFetch(
 	path: string,
@@ -66,11 +76,16 @@ type StepExport = {
 export async function startStepExport(
 	exp: StepExport,
 ): Promise<{ translationId: string } | string> {
+	// ensure user supplied onshape ids have valid format
+	if (![exp.documentId, exp.workspaceId, exp.elementId].every(isOnshapeId)) {
+		return "Invalid Onshape document, workspace, or element ID.";
+	}
+	// don't waste api call in def env
 	if (isFake()) {
 		return { translationId: `fake-${crypto.randomUUID()}` };
 	}
 
-	const endpoint = `/assemblies/d/${exp.documentId}/w/${exp.workspaceId}/e/${exp.elementId}/export/step`;
+	const endpoint = apiPath`/assemblies/d/${exp.documentId}/w/${exp.workspaceId}/e/${exp.elementId}/export/step`;
 	const request: OnshapeRequest = {
 		method: "POST",
 		body: {
@@ -99,7 +114,7 @@ export async function getTranslationInfo(
 		return { externalDataId: `fake-${crypto.randomUUID()}` };
 	}
 
-	const endpoint = `/translations/${translationId}`;
+	const endpoint = apiPath`/translations/${translationId}`;
 	const body = await onshapeJson(endpoint);
 
 	if (typeof body === "string") return body;
@@ -125,14 +140,18 @@ export async function downloadExternalData(
 	documentId: string,
 	fileId: string,
 ): Promise<{ bytes: ArrayBuffer } | string> {
+	// ensure user supplied onshape ids have valid format
+	if (!isOnshapeId(documentId)) return "Invalid Onshape document ID.";
+
+	// don't waste api call in dev env
 	if (isFake()) {
 		return { bytes: new TextEncoder().encode("fake STEP file").buffer };
 	}
 
-	const res = await onshapeFetch(
-		`/documents/d/${documentId}/externaldata/${fileId}`,
-		{ accept: "application/octet-stream" },
-	);
+	const endpoint = apiPath`/documents/d/${documentId}/externaldata/${fileId}`;
+	const res = await onshapeFetch(endpoint, {
+		accept: "application/octet-stream",
+	});
 	if (typeof res === "string") return res;
 
 	try {

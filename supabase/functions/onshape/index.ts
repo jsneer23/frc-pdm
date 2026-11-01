@@ -5,7 +5,10 @@ import { startStepExport } from "../_shared/onshapeApi.ts";
 import {
 	isNonEmptyString,
 	isObject,
+	isOccurrencePath,
+	isOnshapeId,
 	isPositiveInteger,
+	isVisibleAscii,
 } from "../_shared/validators.ts";
 
 // part attributes stored in parts table
@@ -199,19 +202,23 @@ function parseExportRequest(
 
 	// onshape
 	if (!isNonEmptyString(o.userId)) return "onshape.userId is required.";
-	if (!isNonEmptyString(o.documentId)) return "onshape.documentId is required.";
-	if (!isNonEmptyString(o.workspaceId)) {
-		return "onshape.workspaceId is required.";
+	if (!isOnshapeId(o.documentId)) {
+		return "onshape.documentId must be an Onshape ID.";
 	}
-	if (!isNonEmptyString(o.elementId)) return "onshape.elementId is required.";
-	if (!isNonEmptyString(o.selectionId)) {
-		return "onshape.selectionId is required.";
+	if (!isOnshapeId(o.workspaceId)) {
+		return "onshape.workspaceId must be an Onshape ID.";
 	}
-	if (!isNonEmptyString(o.microversionId)) {
-		return "onshape.microversionId is required.";
+	if (!isOnshapeId(o.elementId)) {
+		return "onshape.elementId must be an Onshape ID.";
 	}
-	if (!isNonEmptyString(o.occurrencePath)) {
-		return "onshape.occurrencePath is required.";
+	if (!isOnshapeId(o.microversionId)) {
+		return "onshape.microversionId must be an Onshape ID.";
+	}
+	if (!isVisibleAscii(o.selectionId, 100)) {
+		return "onshape.selectionId must be 1–100 characters with no spaces.";
+	}
+	if (!isOccurrencePath(o.occurrencePath)) {
+		return 'onshape.occurrencePath must be instance IDs joined with ".".';
 	}
 	if (o.kind !== "face" && o.kind !== "body") {
 		return 'onshape.kind must be "face" or "body".';

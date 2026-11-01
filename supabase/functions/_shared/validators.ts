@@ -15,3 +15,31 @@ export function isNonEmptyString(value: unknown): value is string {
 export function isPositiveInteger(value: unknown): value is number {
 	return Number.isInteger(value) && (value as number) > 0;
 }
+
+// onshape id regex for 24 character long hex ids
+const ONSHAPE_ID = /^[0-9a-f]{24}$/;
+
+export function isOnshapeId(value: unknown): value is string {
+	return typeof value === "string" && ONSHAPE_ID.test(value);
+}
+
+// verify string of only visible ascii characters of length < maxlen
+// i.e. no spaces, no control characters
+export function isVisibleAscii(
+	value: unknown,
+	maxLength: number,
+): value is string {
+	return (
+		typeof value === "string" &&
+		value.length <= maxLength &&
+		/^[\x21-\x7e]+$/.test(value)
+	);
+}
+
+// Instance IDs joined with ".", in nesting order. No empty segments.
+export function isOccurrencePath(value: unknown): value is string {
+	return (
+		isVisibleAscii(value, 500) &&
+		value.split(".").every((segment) => segment !== "")
+	);
+}
