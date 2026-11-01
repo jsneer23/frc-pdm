@@ -250,7 +250,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			},
 		};
 
-		console.log(request);
+		if (import.meta.env.DEV) console.log(request);
 		setIsSubmitting(true);
 		try {
 			const { data, error } = await supabase.functions.invoke<{
@@ -285,7 +285,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				resetPartDetails("");
 				clearOnshapeSelection();
 			}
-			console.log(data);
+			if (import.meta.env.DEV) console.log(data);
 		} finally {
 			setIsSubmitting(false);
 		}
