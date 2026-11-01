@@ -66,7 +66,9 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 	async function handleEmailSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
-		if (isSubmitting) return;
+		if (isSubmitting) {
+			return;
+		}
 
 		const trimmed = email.trim();
 

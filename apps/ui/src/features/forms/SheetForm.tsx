@@ -65,10 +65,12 @@ function selectSheetMachines(rows: MachineRow[]) {
 	const result = {} as Record<SheetMachineId, SheetMachine>;
 	for (const code of PART_TYPES.sheet.machines) {
 		const row = rows.find((r) => r.code === code);
-		if (!row)
+		if (!row) {
 			throw new Error(`Machine "${code}" is missing from the database.`);
-		if (row.selection === null)
+		}
+		if (row.selection === null) {
 			throw new Error(`Machine "${code}" has no Onshape selection type.`);
+		}
 		result[code] = { ...row, selection: row.selection };
 	}
 	return result;
@@ -87,8 +89,12 @@ export function SheetForm() {
 		isError: robotsError,
 	} = useQuery({ ...robotsQueryOptions });
 
-	if (machinesPending || robotsPending) return <p>Loading…</p>;
-	if (machinesError || robotsError) return <p>Couldn't load data.</p>;
+	if (machinesPending || robotsPending) {
+		return <p>Loading…</p>;
+	}
+	if (machinesError || robotsError) {
+		return <p>Couldn't load data.</p>;
+	}
 
 	return <SheetFormFields machines={machines} robots={robots} />;
 }
@@ -144,8 +150,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		resetPartDetails("");
 
 		// clear onshape selection
-		if (machines[next].selection !== machineDef.selection)
+		if (machines[next].selection !== machineDef.selection) {
 			clearOnshapeSelection();
+		}
 	}
 
 	function handleMaterialChange(next: string) {
@@ -174,7 +181,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		if (error instanceof FunctionsHttpError) {
 			try {
 				const body = await error.context.json();
-				if (typeof body?.error === "string") return body.error;
+				if (typeof body?.error === "string") {
+					return body.error;
+				}
 			} catch {
 				// The response wasn't JSON; fall through to the general message.
 			}
@@ -202,22 +211,33 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 					: "Select a part in Onshape.";
 		}
 
-		if (robot === undefined) nextErrors.robot = "Select a robot.";
-		if (trimmedName === "") nextErrors.partName = "Enter a part name.";
+		if (robot === undefined) {
+			nextErrors.robot = "Select a robot.";
+		}
+		if (trimmedName === "") {
+			nextErrors.partName = "Enter a part name.";
+		}
 		if (subsystem === null || subsystemId === undefined) {
 			nextErrors.subsystem = "Select a subsystem.";
 		}
-		if (material === null) nextErrors.material = "Select a material.";
-		if (stockId === null) nextErrors.thickness = "Select a thickness.";
-		if (!Number.isInteger(qty) || qty < 1)
+		if (material === null) {
+			nextErrors.material = "Select a material.";
+		}
+		if (stockId === null) {
+			nextErrors.thickness = "Select a thickness.";
+		}
+		if (!Number.isInteger(qty) || qty < 1) {
 			nextErrors.quantity = "Enter a valid quantity.";
+		}
 		if (!(weight > 0 && weight <= 20)) {
 			nextErrors.weight =
 				"Enter valid weight. Ensure material is set and measure in Onshape.";
 		}
 
 		setErrors(nextErrors);
-		if (Object.keys(nextErrors).length > 0) return;
+		if (Object.keys(nextErrors).length > 0) {
+			return;
+		}
 
 		if (
 			!selection ||
@@ -225,8 +245,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			robot === undefined ||
 			subsystemId === undefined ||
 			stockId === null
-		)
+		) {
 			return;
+		}
 
 		// Request
 		const request: PartRequest = {
@@ -250,7 +271,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			},
 		};
 
-		if (import.meta.env.DEV) console.log(request);
+		if (import.meta.env.DEV) {
+			console.log(request);
+		}
 		setIsSubmitting(true);
 		try {
 			const { data, error } = await supabase.functions.invoke<{
@@ -285,7 +308,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				resetPartDetails("");
 				clearOnshapeSelection();
 			}
-			if (import.meta.env.DEV) console.log(data);
+			if (import.meta.env.DEV) {
+				console.log(data);
+			}
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -294,7 +319,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 	function clearError(...fields: (keyof FormErrors)[]) {
 		setErrors((prev) => {
 			const next = { ...prev };
-			for (const field of fields) next[field] = undefined;
+			for (const field of fields) {
+				next[field] = undefined;
+			}
 			return next;
 		});
 	}
@@ -340,7 +367,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 						<Select
 							value={robotCode}
 							onValueChange={(value) => {
-								if (value) handleRobotChange(value);
+								if (value) {
+									handleRobotChange(value);
+								}
 							}}
 							items={toSelectItems(robots)}
 						>
@@ -416,7 +445,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 								items={toSelectItems(availableMaterials)}
 								value={material}
 								onValueChange={(value) => {
-									if (value) handleMaterialChange(value);
+									if (value) {
+										handleMaterialChange(value);
+									}
 								}}
 							>
 								<SelectTrigger

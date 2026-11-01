@@ -14,7 +14,9 @@ async function fetchMaterials(signal: AbortSignal) {
 		.order("id")
 		.abortSignal(signal); // aborts if the request is no longer needed (i.e. form changes)
 
-	if (error) throw error;
+	if (error) {
+		throw error;
+	}
 
 	return data;
 }
@@ -39,7 +41,9 @@ async function fetchMachines(signal: AbortSignal) {
 		.order("thickness_in", { referencedTable: "materials.stocks" })
 		.abortSignal(signal);
 
-	if (error) throw error;
+	if (error) {
+		throw error;
+	}
 
 	return data;
 }
@@ -60,7 +64,9 @@ async function fetchRobots(signal: AbortSignal) {
 		.order("id", { referencedTable: "subsystems" })
 		.abortSignal(signal);
 
-	if (error) throw error;
+	if (error) {
+		throw error;
+	}
 
 	return data;
 }

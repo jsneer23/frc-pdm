@@ -36,7 +36,9 @@ function useFakeSelection({ kind, onSelect }: Options) {
 
 	useEffect(() => {
 		return () => {
-			if (timerRef.current !== null) clearTimeout(timerRef.current);
+			if (timerRef.current !== null) {
+				clearTimeout(timerRef.current);
+			}
 		};
 	}, []);
 
@@ -58,7 +60,9 @@ function useFakeSelection({ kind, onSelect }: Options) {
 	}
 
 	function cancel() {
-		if (timerRef.current !== null) clearTimeout(timerRef.current);
+		if (timerRef.current !== null) {
+			clearTimeout(timerRef.current);
+		}
 		setIsSelecting(false);
 	}
 
@@ -84,17 +88,27 @@ function useRealSelection({ kind, onSelect }: Options) {
 	useEffect(() => {
 		return onOnshapeMessage((data) => {
 			const msg = data as RequestedSelectionMessage;
-			if (msg?.messageName !== "REQUESTED_SELECTION") return;
-			if (msg.messageId !== requestIdRef.current) return;
-			if (msg.status.statusCode === "PENDING") return;
+			if (msg?.messageName !== "REQUESTED_SELECTION") {
+				return;
+			}
+			if (msg.messageId !== requestIdRef.current) {
+				return;
+			}
+			if (msg.status.statusCode === "PENDING") {
+				return;
+			}
 
 			requestIdRef.current = null;
 			setIsSelecting(false);
 
-			if (msg.status.statusCode !== "SUCCESS") return;
+			if (msg.status.statusCode !== "SUCCESS") {
+				return;
+			}
 
 			const first = msg.selections?.[0];
-			if (!first) return;
+			if (!first) {
+				return;
+			}
 
 			const next: OnshapeSelection = {
 				selectionType: first.selectionType,
@@ -120,7 +134,9 @@ function useRealSelection({ kind, onSelect }: Options) {
 	}
 
 	function cancel() {
-		if (requestIdRef.current != null) postToOnshape("stopRequest");
+		if (requestIdRef.current != null) {
+			postToOnshape("stopRequest");
+		}
 		requestIdRef.current = null;
 		setIsSelecting(false);
 	}

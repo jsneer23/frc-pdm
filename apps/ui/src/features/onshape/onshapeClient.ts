@@ -23,11 +23,16 @@ export function onOnshapeMessage(listener: Listener) {
 }
 
 window.addEventListener("message", (event) => {
-	if (event.origin !== onshapeContext.server) return;
+	if (event.origin !== onshapeContext.server) {
+		return;
+	}
 
-	if (import.meta.env.DEV)
+	if (import.meta.env.DEV) {
 		console.log("[onshape]", JSON.stringify(event.data, null, 2));
-	for (const listener of listeners) listener(event.data);
+	}
+	for (const listener of listeners) {
+		listener(event.data);
+	}
 });
 
 export function postToOnshape(messageName: string, extra: object = {}) {

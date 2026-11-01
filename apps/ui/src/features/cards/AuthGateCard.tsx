@@ -34,8 +34,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 	}, []); // the [] ensures the effect only runs once
 
 	// while still waiting for the session info don't render anything
-	if (session === undefined) return null;
+	if (session === undefined) {
+		return null;
+	}
 	// if session is unauthenticated (i.e. null) render the LoginForm
-	else if (session === null) return <LoginForm />;
+	else if (session === null) {
+		return <LoginForm />;
+	}
 	return children;
 }

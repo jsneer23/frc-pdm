@@ -21,6 +21,13 @@
 		"enabled": true,
 		"indentStyle": "tab"
 	},
+	"linter": {
+		"rules": {
+			"style": {
+				"useBlockStatements": "error"
+			}
+		}
+	},
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"javascript": {
 		"formatter": {
