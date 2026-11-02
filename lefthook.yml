@@ -5,3 +5,22 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx,json,css}"
       run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
+    typecheck:
+      root: "apps/ui/"
+      glob: "*.{ts,tsx}"
+      run: pnpm typecheck
+    functions-biome:
+      root: "supabase/functions/"
+      glob: "*.ts"
+      run: biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    functions-check:
+      root: "supabase/functions/"
+      glob: "*.ts"
+      run: mise run functions:check
+
+pre-push:
+  commands:
+    build:
+      root: "apps/ui/"
+      run: pnpm build
