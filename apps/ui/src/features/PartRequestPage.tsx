@@ -36,7 +36,7 @@ export function PartRequestPage() {
 	async function handleSignOut() {
 		const { error } = await supabase.auth.signOut({ scope: "local" });
 		if (error) {
-			console.error(error);
+			console.error("Error signing out: ", error);
 		}
 	}
 

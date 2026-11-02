@@ -96,7 +96,7 @@ function EmailForm({ onCodeSent }: EmailFormProps) {
 				onCodeSent(trimmed);
 			}
 		} catch (err) {
-			console.error(err);
+			console.error("Unknown error while submitting email:", err);
 			setError("Unknown error occurred. Please try again.");
 		} finally {
 			setIsSubmitting(false);
@@ -157,7 +157,7 @@ function TokenForm({ email }: { email: string }) {
 				setError(messageForTokenError(otpError));
 			}
 		} catch (err) {
-			console.error(err);
+			console.error("Unknown error when submitting token:", err);
 			setError("Unknown error occurred. Please try again.");
 		} finally {
 			setIsSubmitting(false);

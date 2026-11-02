@@ -11,3 +11,13 @@ if (!url || !key) {
 }
 
 export const supabase = createClient<Database>(url, key);
+
+if (import.meta.env.DEV) {
+	fetch(`${url}/auth/v1/health`, {
+		headers: { apikey: key },
+	}).catch(() => {
+		console.warn(
+			`Can't reach Supabase at ${url}. Is the local stack running? Check with \`supabase status\`.`,
+		);
+	});
+}
