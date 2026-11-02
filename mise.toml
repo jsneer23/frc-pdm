@@ -100,3 +100,19 @@ run = [
 description = "Fail if Edge Function files aren't deno-fmt formatted"
 dir = "{{config_root}}/supabase/functions"
 run = "biome format ."
+
+[tasks."db:start"]
+description = "Start the local Supabase stack (needs Docker)"
+run = "supabase start"
+
+[tasks."db:stop"]
+description = "Stop the local Supabase stack, keeping its data"
+run = "supabase stop"
+
+[tasks."db:reset"]
+description = "Rebuild local db from migrations and seed.sql"
+run = "supabase start"
+
+[tasks."mail"]
+description = "Open the local Supabase inbox for sign-in codes (macOS only)"
+run = "open http://127.0.0.1:54324"
