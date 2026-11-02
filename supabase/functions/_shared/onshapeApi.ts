@@ -7,7 +7,7 @@ type OnshapeRequest = {
 };
 
 const ONSHAPE_API = "https://cad.onshape.com/api/v17";
-const isFake = () => Deno.env.get("ONSHAPE_FAKE") === "true";
+const isDev = () => Deno.env.get("ONSHAPE_DEV") === "true";
 
 // builds api path and encodes every value, so "/", "?", and "#" inside
 // a value can't add path segments or a query string
@@ -89,7 +89,7 @@ export async function startStepExport(
 		return "Invalid Onshape document, workspace, or element ID.";
 	}
 	// don't waste api call in def env
-	if (isFake()) {
+	if (isDev()) {
 		return { translationId: `fake-${crypto.randomUUID()}` };
 	}
 
@@ -120,7 +120,7 @@ export async function startStepExport(
 export async function getTranslationInfo(
 	translationId: string,
 ): Promise<{ externalDataId: string } | string> {
-	if (isFake()) {
+	if (isDev()) {
 		return { externalDataId: `fake-${crypto.randomUUID()}` };
 	}
 
@@ -158,7 +158,7 @@ export async function downloadExternalData(
 	}
 
 	// don't waste api call in dev env
-	if (isFake()) {
+	if (isDev()) {
 		return { bytes: new TextEncoder().encode("fake STEP file").buffer };
 	}
 
