@@ -1,3 +1,5 @@
 {
+	"$schema": "https://unpkg.com/knip@5/schema.json",
+	"ignore": ["src/components/ui/**", "src/lib/database.types.ts"],
 	"ignoreBinaries": ["biome"]
 }
