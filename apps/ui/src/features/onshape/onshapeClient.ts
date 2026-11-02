@@ -44,7 +44,7 @@ function detectMode(): OnshapeMode {
 }
 
 export const onshapeMode = detectMode();
-export const isInOnshape = onshapeMode === "onshape";
+const isInOnshape = onshapeMode === "onshape";
 
 export const parentOriginForDisplay =
 	realParentOrigin ?? (onshapeContext.server || "an unknown page");

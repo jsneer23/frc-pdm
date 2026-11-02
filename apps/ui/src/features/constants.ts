@@ -52,7 +52,3 @@ export type PartRequest = {
 		cadMassLb: number;
 	};
 };
-
-export type PartRequestResponse =
-	| { ok: true; requestId: string }
-	| { ok: false; error: string };
