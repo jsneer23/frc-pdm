@@ -33,7 +33,7 @@ import { QuantityField } from "../fields/QuantityField";
 import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
 import { WeightField } from "../fields/WeightField";
-import { onshapeContext } from "../onshape/onshapeClient";
+import { onshapeContext, onshapeMode } from "../onshape/onshapeClient";
 import { useOnshapeSelection } from "../onshape/useOnshapeSelection";
 
 type FormErrors = Partial<
@@ -276,6 +276,12 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		}
 		setIsSubmitting(true);
 		try {
+			if (onshapeMode === "demo") {
+				resetPartDetails("");
+				clearOnshapeSelection();
+				toast.info("Demo mode: nothing was submitted.");
+				return;
+			}
 			const { data, error } = await supabase.functions.invoke<{
 				partId: number;
 				partNumber: string;

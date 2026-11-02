@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { EntityType, SelectionType } from "../constants";
 
-import { isInOnshape, onOnshapeMessage, postToOnshape } from "./onshapeClient";
+import { onOnshapeMessage, onshapeMode, postToOnshape } from "./onshapeClient";
 
 export type OnshapeSelection = {
 	selectionType: SelectionType;
@@ -149,7 +149,7 @@ function useRealSelection({ kind, onSelect }: Options) {
 	return { selection, isSelecting, start, cancel, clear };
 }
 
-const useFake = !isInOnshape && import.meta.env.DEV;
+const useFake = onshapeMode === "demo";
 
 export const useOnshapeSelection = useFake
 	? useFakeSelection

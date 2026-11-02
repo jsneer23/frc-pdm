@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthGate } from "@/features/cards/AuthGateCard";
+import {
+	onshapeMode,
+	parentOriginForDisplay,
+} from "@/features/onshape/onshapeClient";
 import { PartRequestPage } from "../features/PartRequestPage";
 
 export const Route = createFileRoute("/onshape")({
@@ -7,6 +11,14 @@ export const Route = createFileRoute("/onshape")({
 });
 
 function OnshapePanel() {
+	if (onshapeMode === "rejected") {
+		return (
+			<p className="p-4 text-sm text-destructive">
+				This panel only works inside Onshape. It was opened by{" "}
+				{parentOriginForDisplay}.
+			</p>
+		);
+	}
 	return (
 		<div className="p-4">
 			<AuthGate>

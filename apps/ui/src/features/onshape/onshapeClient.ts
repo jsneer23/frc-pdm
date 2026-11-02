@@ -1,3 +1,6 @@
+// only allow onshape to embed the panel
+const ALLOWED_ONSHAPE_ORIGINS: readonly string[] = ["https://cad.onshape.com"];
+
 const params = new URLSearchParams(window.location.search);
 
 export const onshapeContext = {
@@ -10,7 +13,41 @@ export const onshapeContext = {
 	server: params.get("server") ?? "",
 };
 
-export const isInOnshape = onshapeContext.server !== "";
+/**
+ * - "demo": not in an iframe (opened directly, e.g. on github pages).
+ *   selections are fake and form never posts messages
+ * - "onshape": embedded by an allowed Onshape origin
+ * - "rejected": embedded by anything else. route shows an error
+ */
+export type OnshapeMode = "demo" | "onshape" | "rejected";
+
+// frame parent's real origin, set by the browser from the actual frames, so url
+// can't fake it. works in chrome and safari only. undefined in firefox
+const realParentOrigin: string | undefined =
+	window.location.ancestorOrigins?.[0];
+
+function detectMode(): OnshapeMode {
+	if (window.self === window.top) {
+		return "demo";
+	}
+	if (realParentOrigin !== undefined) {
+		const allowed =
+			ALLOWED_ONSHAPE_ORIGINS.includes(realParentOrigin) &&
+			realParentOrigin === onshapeContext.server;
+		return allowed ? "onshape" : "rejected";
+	}
+
+	// in firefox trust `server` only if it's allowlisted.
+	return ALLOWED_ONSHAPE_ORIGINS.includes(onshapeContext.server)
+		? "onshape"
+		: "rejected";
+}
+
+export const onshapeMode = detectMode();
+export const isInOnshape = onshapeMode === "onshape";
+
+export const parentOriginForDisplay =
+	realParentOrigin ?? (onshapeContext.server || "an unknown page");
 
 type Listener = (data: unknown) => void;
 const listeners = new Set<Listener>();
@@ -23,12 +60,14 @@ export function onOnshapeMessage(listener: Listener) {
 }
 
 window.addEventListener("message", (event) => {
-	if (event.origin !== onshapeContext.server) {
+	if (!isInOnshape) {
 		return;
 	}
-
-	if (import.meta.env.DEV) {
-		console.log("[onshape]", JSON.stringify(event.data, null, 2));
+	if (event.source !== window.parent) {
+		return;
+	}
+	if (event.origin !== onshapeContext.server) {
+		return;
 	}
 	for (const listener of listeners) {
 		listener(event.data);
@@ -36,11 +75,10 @@ window.addEventListener("message", (event) => {
 });
 
 export function postToOnshape(messageName: string, extra: object = {}) {
-	const { server, ...ids } = onshapeContext;
-	if (!server) {
-		console.warn(`[onshape] No server parameter. "${messageName}" not sent.`);
+	if (!isInOnshape) {
 		return;
 	}
+	const { server, ...ids } = onshapeContext;
 	window.parent.postMessage({ ...ids, messageName, ...extra }, server);
 }
 
