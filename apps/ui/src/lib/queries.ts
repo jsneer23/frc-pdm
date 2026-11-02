@@ -44,7 +44,7 @@ async function fetchRobots(signal: AbortSignal) {
 }
 
 export const robotsQueryOptions = queryOptions({
-	queryKey: ["subsystems"],
+	queryKey: ["robots"],
 	queryFn: ({ signal }) => fetchRobots(signal),
 	staleTime: Infinity,
 });
