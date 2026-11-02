@@ -121,15 +121,22 @@ async function handleExport(
 		);
 	}
 
-	// Start the export before writing part_exports, so the row is written
+	// only step exports work right now. do not make onshape call for any other format
+	const fileFormat = part.machines.file_format;
+	const isSupported = fileFormat === "step";
+
+	// start the export before writing part_exports, so the row is written
 	// once: with its translation ID, or with the reason the export didn't start.
-	const started = await startStepExport({
-		documentId: parsed.onshape.document_id,
-		workspaceId: parsed.onshape.workspace_id,
-		elementId: parsed.onshape.element_id,
-		occurrencePath: parsed.onshape.occurrence_path,
-	});
-	if (typeof started === "string") {
+	const started = isSupported
+		? await startStepExport({
+				documentId: parsed.onshape.document_id,
+				workspaceId: parsed.onshape.workspace_id,
+				elementId: parsed.onshape.element_id,
+				occurrencePath: parsed.onshape.occurrence_path,
+			})
+		: `${fileFormat.toUpperCase()} export isn't supported yet.`;
+
+	if (isSupported && typeof started === "string") {
 		console.error("Onshape export didn't start:", started);
 	}
 
@@ -163,7 +170,9 @@ async function handleExport(
 		return Response.json(
 			{
 				...created,
-				warning: "The part was created, but its file export didn't start.",
+				warning: isSupported
+					? "The part was created, but its file export didn't start."
+					: `Part created. ${fileFormat.toUpperCase()} export isn't supported yet. Export manually.`,
 			},
 			{ status: 201 },
 		);
