@@ -12,7 +12,9 @@ export async function verifyOnshapeSignature(
 	rawBody: string,
 ): Promise<boolean> {
 	const timestamp = headers.get("x-onshape-webhook-timestamp");
-	if (!timestamp) return false;
+	if (!timestamp) {
+		return false;
+	}
 	const MAX_AGE_MS = 5 * 60 * 1000;
 
 	const sentAt = Number(timestamp);
@@ -25,7 +27,9 @@ export async function verifyOnshapeSignature(
 	for (const [header, envName] of SIGNATURES) {
 		const signature = headers.get(header);
 		const secret = Deno.env.get(envName);
-		if (!signature || !secret) continue;
+		if (!signature || !secret) {
+			continue;
+		}
 
 		const key = await crypto.subtle.importKey(
 			"raw",

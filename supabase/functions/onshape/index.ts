@@ -99,7 +99,9 @@ async function handleExport(
 		.select("id, machines(file_format)")
 		.single();
 
-	if (insertError) return insertErrorResponse(insertError);
+	if (insertError) {
+		return insertErrorResponse(insertError);
+	}
 
 	// read assigned part number from db
 	const { data: numbered, error: numberError } = await db
@@ -172,14 +174,22 @@ async function handleExport(
 function parseExportRequest(
 	body: unknown,
 ): { part: PartInsert; onshape: OnshapeFields } | string {
-	if (!isObject(body)) return "Request body must be an object.";
+	if (!isObject(body)) {
+		return "Request body must be an object.";
+	}
 	const { part: p, onshape: o } = body;
 
-	if (!isObject(p)) return "part is required.";
-	if (!isObject(o)) return "onshape is required.";
+	if (!isObject(p)) {
+		return "part is required.";
+	}
+	if (!isObject(o)) {
+		return "onshape is required.";
+	}
 
 	// part
-	if (!isNonEmptyString(p.partName)) return "partName is required.";
+	if (!isNonEmptyString(p.partName)) {
+		return "partName is required.";
+	}
 	if (!isPositiveInteger(p.subsystemId)) {
 		return "subsystemId must be a positive whole number.";
 	}
@@ -201,7 +211,9 @@ function parseExportRequest(
 	}
 
 	// onshape
-	if (!isNonEmptyString(o.userId)) return "onshape.userId is required.";
+	if (!isNonEmptyString(o.userId)) {
+		return "onshape.userId is required.";
+	}
 	if (!isOnshapeId(o.documentId)) {
 		return "onshape.documentId must be an Onshape ID.";
 	}

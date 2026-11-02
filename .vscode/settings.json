@@ -41,7 +41,6 @@
 	"js/ts.tsdk.path": "./apps/ui/node_modules/typescript/lib",
 	"biome.lsp.bin": "${userHome}/.local/share/mise/installs/biome/",
 	"deno.enablePaths": ["supabase/functions"],
-	"deno.importMap": "./supabase/functions/deno.json",
 	"deno.lint": true,
 	"deno.unstable": [
 		"bare-node-builtins",

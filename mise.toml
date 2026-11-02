@@ -63,6 +63,7 @@ run = "supabase functions serve"
 
 [tasks."functions:check"]
 description = "Type-check every Edge Function"
+depends = ["functions:lint", "functions:fmt"]
 run = [
 	"cd supabase/functions/onshape && deno check index.ts",
 	"cd supabase/functions/onshape-webhook && deno check index.ts",
@@ -86,3 +87,16 @@ fi
 supabase secrets set --env-file supabase/functions/.env
 supabase secrets list
 """
+
+[tasks."functions:lint"]
+description = "Biome braces rule for Edge Functions (deno lint does the rest)"
+dir = "{{config_root}}/supabase/functions"
+run = [
+  "deno lint --ignore=_shared/database.types.ts",
+  "biome lint .",
+]
+
+[tasks."functions:fmt"]
+description = "Fail if Edge Function files aren't deno-fmt formatted"
+dir = "{{config_root}}/supabase/functions"
+run = "biome format ."

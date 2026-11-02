@@ -72,15 +72,23 @@ async function handleTranslationComplete(
 		return;
 	}
 	// webhook covers the whole classroom account. some translations aren't for the app
-	if (row === null) return;
+	if (row === null) {
+		return;
+	}
 	// already handled. duplicate notification
-	if (row.status !== "exporting") return;
+	if (row.status !== "exporting") {
+		return;
+	}
 
 	const info = await getTranslationInfo(translationId);
-	if (typeof info === "string") return markFailed(ctx, row.id, info);
+	if (typeof info === "string") {
+		return markFailed(ctx, row.id, info);
+	}
 
 	const file = await downloadExternalData(row.document_id, info.externalDataId);
-	if (typeof file === "string") return markFailed(ctx, row.id, file);
+	if (typeof file === "string") {
+		return markFailed(ctx, row.id, file);
+	}
 
 	const { data: part, error: numberError } = await admin
 		.from("parts_with_number")
@@ -105,7 +113,9 @@ async function handleTranslationComplete(
 		.update({ status: "done", file_path: path })
 		.eq("id", row.id)
 		.eq("status", "exporting");
-	if (doneError) console.error("Marking export done failed:", doneError);
+	if (doneError) {
+		console.error("Marking export done failed:", doneError);
+	}
 }
 
 async function markFailed(
@@ -120,5 +130,7 @@ async function markFailed(
 		.update({ status: "failed", failure_reason: reason })
 		.eq("id", id)
 		.eq("status", "exporting"); // never set a success status to failed
-	if (error) console.error("Could not mark export failed in database:", error);
+	if (error) {
+		console.error("Could not mark export failed in database:", error);
+	}
 }

@@ -1,0 +1,17 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.9/schema.json",
+	"root": false,
+	"files": {
+		"includes": ["**/*.ts", "!**/database.types.ts"]
+	},
+	"formatter": { "enabled": true, "indentStyle": "tab", "lineWidth": 80 },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "none",
+			"style": {
+				"useBlockStatements": { "level": "error", "fix": "safe" }
+			}
+		}
+	}
+}

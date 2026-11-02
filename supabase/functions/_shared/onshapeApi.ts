@@ -25,13 +25,17 @@ async function onshapeFetch(
 ): Promise<Response | string> {
 	const accessKey = Deno.env.get("ONSHAPE_ACCESS_KEY");
 	const secretKey = Deno.env.get("ONSHAPE_SECRET_KEY");
-	if (!accessKey || !secretKey) return "Onshape API keys are not set.";
+	if (!accessKey || !secretKey) {
+		return "Onshape API keys are not set.";
+	}
 
 	const headers: Record<string, string> = {
 		Authorization: `Basic ${btoa(`${accessKey}:${secretKey}`)}`,
 		Accept: accept,
 	};
-	if (body !== undefined) headers["Content-Type"] = "application/json";
+	if (body !== undefined) {
+		headers["Content-Type"] = "application/json";
+	}
 
 	let res: Response;
 	try {
@@ -59,10 +63,14 @@ async function onshapeJson(
 	init?: OnshapeRequest,
 ): Promise<Record<string, unknown> | string> {
 	const res = await onshapeFetch(path, init);
-	if (typeof res === "string") return res;
+	if (typeof res === "string") {
+		return res;
+	}
 
 	const body: unknown = await res.json().catch(() => null);
-	if (!isObject(body)) return "Onshape returned an unexpected response.";
+	if (!isObject(body)) {
+		return "Onshape returned an unexpected response.";
+	}
 	return body;
 }
 
@@ -99,7 +107,9 @@ export async function startStepExport(
 	};
 	const body = await onshapeJson(endpoint, request);
 
-	if (typeof body === "string") return body;
+	if (typeof body === "string") {
+		return body;
+	}
 
 	if (typeof body.id !== "string") {
 		return "Onshape did not return a translation ID.";
@@ -117,7 +127,9 @@ export async function getTranslationInfo(
 	const endpoint = apiPath`/translations/${translationId}`;
 	const body = await onshapeJson(endpoint);
 
-	if (typeof body === "string") return body;
+	if (typeof body === "string") {
+		return body;
+	}
 
 	if (body.requestState === "FAILED") {
 		return typeof body.failureReason === "string"
@@ -141,7 +153,9 @@ export async function downloadExternalData(
 	fileId: string,
 ): Promise<{ bytes: ArrayBuffer } | string> {
 	// ensure user supplied onshape ids have valid format
-	if (!isOnshapeId(documentId)) return "Invalid Onshape document ID.";
+	if (!isOnshapeId(documentId)) {
+		return "Invalid Onshape document ID.";
+	}
 
 	// don't waste api call in dev env
 	if (isFake()) {
@@ -152,7 +166,9 @@ export async function downloadExternalData(
 	const res = await onshapeFetch(endpoint, {
 		accept: "application/octet-stream",
 	});
-	if (typeof res === "string") return res;
+	if (typeof res === "string") {
+		return res;
+	}
 
 	try {
 		return { bytes: await res.arrayBuffer() };
