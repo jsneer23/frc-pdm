@@ -13,7 +13,8 @@ export function WeightField({ value, onChange, error }: WeightFieldProps) {
 			<FieldLabel htmlFor="weight">Estimated Weight (lbs)</FieldLabel>
 			<Input
 				id="weight"
-				type="number"
+				type="text"
+				inputMode="decimal"
 				min="0"
 				max="20"
 				value={value}

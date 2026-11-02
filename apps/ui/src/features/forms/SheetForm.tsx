@@ -229,7 +229,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		if (!Number.isInteger(qty) || qty < 1) {
 			nextErrors.quantity = "Enter a valid quantity.";
 		}
-		if (!(weight > 0 && weight <= 20)) {
+		if (!Number.isFinite(weight) || weight < 0.0002 || weight > 20) {
 			nextErrors.weight =
 				"Enter valid weight. Ensure material is set and measure in Onshape.";
 		}

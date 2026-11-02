@@ -114,10 +114,12 @@ async function handleExport(
 		console.error("Part number lookup failed:", numberError);
 		return Response.json(
 			{
-				error:
+				partId: part.id, // whatever your inserted row's variable is called
+				partNumber: null,
+				warning:
 					"The part was created, but its number couldn't be read. Check the queue.",
 			},
-			{ status: 500 },
+			{ status: 201 },
 		);
 	}
 
@@ -219,6 +221,12 @@ function parseExportRequest(
 		return "cadMassLb must be a positive number.";
 	}
 
+	const cadMassG = Math.round(p.cadMassLb * GRAMS_PER_POUND * 10) / 10;
+
+	if (cadMassG === 0) {
+		return "weight is too small. enter at least 0.0002 lb. ";
+	}
+
 	// onshape
 	if (!isNonEmptyString(o.userId)) {
 		return "onshape.userId is required.";
@@ -255,7 +263,7 @@ function parseExportRequest(
 			stock_id: p.stockId,
 			machine_id: p.machineId,
 			qty: p.quantity,
-			cad_mass_g: Math.round(p.cadMassLb * GRAMS_PER_POUND * 10) / 10,
+			cad_mass_g: cadMassG,
 		},
 		onshape: {
 			onshape_user_id: o.userId,
