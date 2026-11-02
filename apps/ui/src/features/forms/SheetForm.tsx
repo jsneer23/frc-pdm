@@ -1,6 +1,5 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "cn";
 import { Loader2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +24,7 @@ import {
 	robotsQueryOptions,
 } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import { MachineSelectionCard } from "../cards/MachineSelectionCard";
 import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
 import { PartDetailsCard } from "../cards/PartDetailsCard";
