@@ -116,3 +116,10 @@ run = "supabase start"
 [tasks."mail"]
 description = "Open the local Supabase inbox for sign-in codes (macOS only)"
 run = "open http://127.0.0.1:54324"
+
+[tasks."hooks"]
+description = "Test pre-commit and pre-push hooks before actually doing either"
+run = [
+  "lefthook run pre-commit",
+  "lefthook run pre-push"
+]
