@@ -21,7 +21,6 @@ create table public.members (
   name             text not null,
   is_admin         boolean not null default false,
   auth_user_id     uuid unique references auth.users (id) on delete set null,
-  onshape_user_id  text unique,
   created_at       timestamptz not null default now()
 );
 
@@ -141,7 +140,10 @@ create table public.parts (
 );
 alter table public.parts enable row level security;
 revoke all on public.parts from anon, authenticated;
-grant select,insert, update, delete on public.parts to authenticated;
+grant select,insert, delete on public.parts to authenticated;
+-- notice this doesn't let admins edit part numbers since they are also authenticated
+grant update (name, qty, status, manufacturer_id, completer_id,
+              actual_mass_g, cad_mass_g) on public.parts to authenticated;
 grant select on public.parts to service_role;
 
 create index parts_completer_id_idx            on public.parts (completer_id);
@@ -172,7 +174,6 @@ grant select on public.parts_with_number to service_role, authenticated;
 create table public.part_exports (
   id               bigint generated always as identity primary key,
   part_id          bigint not null unique references public.parts (id) on delete cascade,
-  onshape_user_id  text not null,
   document_id      text not null constraint part_exports_document_id_format check (document_id ~ '^[0-9a-f]{24}$'),
   workspace_id     text not null constraint part_exports_workspace_id_format check (workspace_id ~ '^[0-9a-f]{24}$'),
   element_id       text not null constraint part_exports_element_id_format check (element_id ~ '^[0-9a-f]{24}$'),
@@ -195,7 +196,7 @@ create table public.part_exports (
 );
 alter table public.part_exports enable row level security;
 revoke all on public.part_exports from anon, authenticated;
-grant select, insert, update, delete on public.part_exports to authenticated;
+grant select, delete on public.part_exports to authenticated;
 grant select, insert, update on public.part_exports to service_role;
 
 create index part_exports_onshape_idx
@@ -212,7 +213,7 @@ create table public.part_status_events (
 );
 alter table public.part_status_events enable row level security;
 revoke all on public.part_status_events from anon, authenticated;
-grant select, insert, delete on public.part_status_events to authenticated;
+grant select on public.part_status_events to authenticated;
 
 create index part_status_events_member_id_idx  on public.part_status_events (member_id);
 
@@ -464,59 +465,69 @@ create policy "Admins can delete part exports"
   to authenticated
   using ((select private.is_admin()));
 
--- status events
-
-create policy "Admins can delete status events"
-  on public.part_status_events for delete
-  to authenticated
-  using ((select private.is_admin()));
-
 -- authenticated user policies
--- authenticated users can read lookup tables, robots, and subsystems
 
-create policy "Anyone can read robots"
+-- members can read only
+
+create policy "Members can read robots"
   on public.robots for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
-create policy "Anyone can read subsystems"
+create policy "Members can read subsystems"
   on public.subsystems for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
-create policy "Anyone can read materials"
+create policy "Members can read materials"
   on public.materials for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
-create policy "Anyone can read stocks"
+create policy "Members can read stocks"
   on public.stocks for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
-create policy "Anyone can read machines"
+create policy "Members can read machines"
   on public.machines for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
-create policy "Anyone can read machine materials"
+create policy "Members can read machine materials"
   on public.machine_materials for select
   to authenticated
-  using (true);
-
--- members can read members
+  using ((select private.is_member()));
 
 create policy "Members can read members"
   on public.members for select
   to authenticated
   using ((select private.is_member()));
 
--- members read, add, and update
+create policy "Members can read part exports"
+  on public.part_exports for select
+  to authenticated
+  using ((select private.is_member()));
 
-create policy "Anyone can read parts"
+create policy "Members can read part files"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'part-files'
+  and (select private.is_member())
+);
+
+create policy "Members can read status events"
+  on public.part_status_events for select
+  to authenticated
+  using ((select private.is_member()));
+
+-- read, add, and update
+
+create policy "Members can read parts"
   on public.parts for select
   to authenticated
-  using (true);
+  using ((select private.is_member()));
 
 create policy "Members can add parts"
   on public.parts for insert
@@ -529,43 +540,6 @@ create policy "Members can update parts"
   using ((select private.is_member()))
   with check ((select private.is_member()));
 
--- members read, add, and update
-
-create policy "Anyone can read part exports"
-  on public.part_exports for select
-  to authenticated
-  using (true);
-
-create policy "Members can add part exports"
-  on public.part_exports for insert
-  to authenticated
-  with check ((select private.is_member()));
-
-create policy "Members can update part exports"
-  on public.part_exports for update
-  to authenticated
-  using ((select private.is_member()))
-  with check ((select private.is_member()));
-
--- members read and add but nobody updates
-
-create policy "Anyone can read status events"
-  on public.part_status_events for select
-  to authenticated
-  using (true);
-
-create policy "Members can add status events"
-  on public.part_status_events for insert
-  to authenticated
-  with check ((select private.is_member()));
-
-create policy "Members can read part files"
-on storage.objects for select
-to authenticated
-using (
-  bucket_id = 'part-files'
-  and (select private.is_member())
-);
 
 -- buckets
 
