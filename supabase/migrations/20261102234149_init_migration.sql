@@ -127,7 +127,7 @@ create table public.parts (
   machine_id          bigint not null references public.machines (id) on delete restrict,
   qty                 integer not null default 1 check (qty between 1 and 99),
   status              part_status not null default 'ready',
-  exporter_id         bigint references public.members (id) on delete restrict,
+  exporter_id         bigint not null default 0 references public.members (id) on delete restrict,
   manufacturer_id     bigint references public.members (id) on delete restrict,
   completer_id        bigint references public.members (id) on delete restrict,
   cad_mass_g          numeric(8, 1) check (cad_mass_g > 0),
@@ -147,10 +147,11 @@ grant update (name, qty, status, manufacturer_id, completer_id,
               actual_mass_g, cad_mass_g) on public.parts to authenticated;
 grant select on public.parts to service_role;
 
-create index parts_completer_id_idx            on public.parts (completer_id);
-create index parts_machine_id_idx              on public.parts (machine_id);
-create index parts_manufacturer_id_idx         on public.parts (manufacturer_id);
-create index parts_stock_id_idx                on public.parts (stock_id);
+create index exporter_id_idx              on public.parts (exporter_id);
+create index parts_manufacturer_id_idx    on public.parts (manufacturer_id);
+create index parts_completer_id_idx       on public.parts (completer_id);
+create index parts_machine_id_idx         on public.parts (machine_id);
+create index parts_stock_id_idx           on public.parts (stock_id);
 
 -- parts_with_number view of parts
 
@@ -223,6 +224,44 @@ create index part_status_events_part_idx
 
 -- functions
 
+-- assign exporter id to the member id of the caller
+
+create function private.assign_exporter_id()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+
+declare
+    member_id bigint;
+
+begin
+
+    select id into member_id
+    from public.members
+    where auth_user_id = (select auth.uid());
+
+    if member_id is null then
+      raise exception 'caller is not a member';
+    end if;
+
+  new.exporter_id := member_id;
+  return new; 
+end;
+$$;
+
+-- prevent trigger function from being called directly
+-- can only be called on inserts per trigger below
+revoke execute on function private.assign_exporter_id()
+    from public, anon, authenticated;
+
+-- attach trigger function to the table - runs once for each row being inserted
+create trigger assign_exporter_id
+    before insert on public.parts
+    for each row
+    execute function private.assign_exporter_id();
+
 -- assign unique part number trigger function
 
 create function private.assign_part_number()
@@ -237,6 +276,8 @@ declare
 
 begin
     -- locks the subsystem row in subsystems table with "for update"
+    -- needed in case two requests com in at the same time and try to
+    -- assign part numbers based of the same current highest
     perform 1
     from public.subsystems
     where id = new.subsystem_id
