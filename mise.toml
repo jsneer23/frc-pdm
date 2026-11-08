@@ -97,7 +97,7 @@ run = [
 ]
 
 [tasks."functions:fmt"]
-description = "Fail if Edge Function files aren't deno-fmt formatted"
+description = "Fail if Edge Function files aren't biome formatted"
 dir = "{{config_root}}/supabase/functions"
 run = "biome format ."
 
