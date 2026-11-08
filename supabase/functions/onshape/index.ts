@@ -20,7 +20,6 @@ type PartInsert = Pick<
 // onshape attributes stored in part_exports
 type OnshapeFields = Pick<
 	TablesInsert<"part_exports">,
-	| "onshape_user_id"
 	| "document_id"
 	| "workspace_id"
 	| "element_id"
@@ -228,9 +227,6 @@ function parseExportRequest(
 	}
 
 	// onshape
-	if (!isNonEmptyString(o.userId)) {
-		return "onshape.userId is required.";
-	}
 	if (!isOnshapeId(o.documentId)) {
 		return "onshape.documentId must be an Onshape ID.";
 	}
@@ -266,7 +262,6 @@ function parseExportRequest(
 			cad_mass_g: cadMassG,
 		},
 		onshape: {
-			onshape_user_id: o.userId,
 			document_id: o.documentId,
 			workspace_id: o.workspaceId,
 			element_id: o.elementId,

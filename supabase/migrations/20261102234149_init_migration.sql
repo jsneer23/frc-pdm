@@ -127,6 +127,7 @@ create table public.parts (
   machine_id          bigint not null references public.machines (id) on delete restrict,
   qty                 integer not null default 1 check (qty between 1 and 99),
   status              part_status not null default 'ready',
+  exporter_id         bigint references public.members (id) on delete restrict,
   manufacturer_id     bigint references public.members (id) on delete restrict,
   completer_id        bigint references public.members (id) on delete restrict,
   cad_mass_g          numeric(8, 1) check (cad_mass_g > 0),

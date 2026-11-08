@@ -252,7 +252,6 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		// Request
 		const request: PartRequest = {
 			onshape: {
-				userId: onshapeContext.userId,
 				documentId: onshapeContext.documentId, // document
 				workspaceId: onshapeContext.workspaceId, // branch
 				elementId: onshapeContext.elementId, // tab
