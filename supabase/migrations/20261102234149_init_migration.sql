@@ -171,6 +171,7 @@ CREATE TABLE public.parts(
   supersedes_part_id bigint UNIQUE REFERENCES public.parts(id) ON DELETE RESTRICT,
   deprecated_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (subsystem_id, sequence_number),
   CHECK (status <> 'completed' OR (completer_id IS NOT NULL AND actual_mass_g IS NOT NULL)),
   CHECK (supersedes_part_id <> id)
@@ -233,7 +234,9 @@ CREATE TABLE public.part_exports(
   kind part_kind NOT NULL,
   file_format export_format NOT NULL,
   file_path text,
-  exported_at timestamptz NOT NULL DEFAULT now()
+  requested_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  attempts integer NOT NULL DEFAULT 1 CHECK (attempts >= 1)
 );
 
 ALTER TABLE public.part_exports ENABLE ROW LEVEL SECURITY;
@@ -291,7 +294,7 @@ BEGIN
       USING errcode = '42501';
   END IF;
   NEW.exporter_id := member_id;
-  RETURN new;
+  RETURN NEW;
 END;
 $$;
 
@@ -342,7 +345,7 @@ BEGIN
   END IF;
   -- overwrite the part number already in the request
   NEW.sequence_number := next_number;
-  RETURN new;
+  RETURN NEW;
 END;
 $$;
 
@@ -452,8 +455,59 @@ CREATE TRIGGER record_status_on_insert
 CREATE TRIGGER record_status_on_update
   AFTER UPDATE OF status ON public.parts
   FOR EACH ROW
-  WHEN(old.status IS DISTINCT FROM new.status)
+  WHEN(OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION private.record_status_event();
+
+-- set completed_at when status is done or failed and reset
+-- when exporting (i.e. a retry)
+CREATE FUNCTION private.set_export_completed_at()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SET search_path = ''
+  AS $$
+BEGIN
+  IF NEW.status = 'exporting' THEN
+    NEW.completed_at := NULL;
+  ELSE
+    NEW.completed_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.set_export_completed_at() FROM public, anon, authenticated;
+
+-- completed at needs to be called on insert if the insert is already known
+-- to be failed (i.e. unsupported file format)
+CREATE TRIGGER set_export_completed_at_on_insert
+  BEFORE INSERT ON public.part_exports
+  FOR EACH ROW
+  EXECUTE FUNCTION private.set_export_completed_at();
+
+CREATE TRIGGER set_export_completed_at_on_update
+  BEFORE UPDATE OF status ON public.part_exports
+  FOR EACH ROW
+  WHEN(old.status IS DISTINCT FROM new.status)
+  EXECUTE FUNCTION private.set_export_completed_at();
+
+-- sets updated_at on every update
+CREATE FUNCTION private.set_updated_at()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SET search_path = ''
+  AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN new;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.set_updated_at() FROM public, anon, authenticated;
+
+CREATE TRIGGER set_parts_updated_at
+  BEFORE UPDATE ON public.parts
+  FOR EACH ROW
+  EXECUTE FUNCTION private.set_updated_at();
 
 -- rls policies
 -- admin

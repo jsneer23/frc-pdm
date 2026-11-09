@@ -75,14 +75,14 @@ isOneToOne: false
                   ]
                 },"part_exports": {
                   Row: {
-                    "configuration": string | null,"document_id": string,"element_id": string,"exported_at": string,"failure_reason": string | null,"file_format": Database["public"]['Enums']["export_format"],"file_path": string | null,"id": number,"kind": Database["public"]['Enums']["part_kind"],"microversion_id": string,"occurrence_path": string,"part_id": number,"selection_id": string,"status": Database["public"]['Enums']["export_status"],"translation_id": string | null,"workspace_id": string
+                    "attempts": number,"completed_at": string | null,"configuration": string | null,"document_id": string,"element_id": string,"failure_reason": string | null,"file_format": Database["public"]['Enums']["export_format"],"file_path": string | null,"id": number,"kind": Database["public"]['Enums']["part_kind"],"microversion_id": string,"occurrence_path": string,"part_id": number,"requested_at": string,"selection_id": string,"status": Database["public"]['Enums']["export_status"],"translation_id": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "configuration"?: string | null,"document_id": string,"element_id": string,"exported_at"?: string,"failure_reason"?: string | null,"file_format": Database["public"]['Enums']["export_format"],"file_path"?: string | null,"id"?: never,"kind": Database["public"]['Enums']["part_kind"],"microversion_id": string,"occurrence_path": string,"part_id": number,"selection_id": string,"status"?: Database["public"]['Enums']["export_status"],"translation_id"?: string | null,"workspace_id": string
+                    "attempts"?: number,"completed_at"?: string | null,"configuration"?: string | null,"document_id": string,"element_id": string,"failure_reason"?: string | null,"file_format": Database["public"]['Enums']["export_format"],"file_path"?: string | null,"id"?: never,"kind": Database["public"]['Enums']["part_kind"],"microversion_id": string,"occurrence_path": string,"part_id": number,"requested_at"?: string,"selection_id": string,"status"?: Database["public"]['Enums']["export_status"],"translation_id"?: string | null,"workspace_id": string
                   }
                   Update: {
-                    "configuration"?: string | null,"document_id"?: string,"element_id"?: string,"exported_at"?: string,"failure_reason"?: string | null,"file_format"?: Database["public"]['Enums']["export_format"],"file_path"?: string | null,"id"?: never,"kind"?: Database["public"]['Enums']["part_kind"],"microversion_id"?: string,"occurrence_path"?: string,"part_id"?: number,"selection_id"?: string,"status"?: Database["public"]['Enums']["export_status"],"translation_id"?: string | null,"workspace_id"?: string
+                    "attempts"?: number,"completed_at"?: string | null,"configuration"?: string | null,"document_id"?: string,"element_id"?: string,"failure_reason"?: string | null,"file_format"?: Database["public"]['Enums']["export_format"],"file_path"?: string | null,"id"?: never,"kind"?: Database["public"]['Enums']["part_kind"],"microversion_id"?: string,"occurrence_path"?: string,"part_id"?: number,"requested_at"?: string,"selection_id"?: string,"status"?: Database["public"]['Enums']["export_status"],"translation_id"?: string | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -133,14 +133,14 @@ isOneToOne: false
                   ]
                 },"parts": {
                   Row: {
-                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string,"deprecated_at": string | null,"exporter_id": number,"id": number,"machine_id": number,"manufacturer_id": number | null,"name": string,"qty": number,"request_id": string | null,"sequence_number": number,"status": Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id": number | null
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string,"deprecated_at": string | null,"exporter_id": number,"id": number,"machine_id": number,"manufacturer_id": number | null,"name": string,"qty": number,"request_id": string | null,"sequence_number": number,"status": Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id": number,"manufacturer_id"?: number | null,"name": string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id"?: number | null
+                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id": number,"manufacturer_id"?: number | null,"name": string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id"?: number,"manufacturer_id"?: number | null,"name"?: string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id"?: number,"subsystem_id"?: number,"supersedes_part_id"?: number | null
+                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id"?: number,"manufacturer_id"?: number | null,"name"?: string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id"?: number,"subsystem_id"?: number,"supersedes_part_id"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -252,7 +252,7 @@ isOneToOne: false
           Views: {
             "parts_with_number": {
                   Row: {
-                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"manufacturer_id": number | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem_id": number | null,"supersedes_part_id": number | null
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"manufacturer_id": number | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"updated_at": string | null
                   }
                   ComputedFields: never
                   Relationships: [
