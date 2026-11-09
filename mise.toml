@@ -12,6 +12,15 @@ run = [
   "cp apps/ui/src/lib/database.types.ts supabase/functions/_shared/database.types.ts",
 ]
 
+[tasks."db:reset"]
+description = "Rebuild the local database from migrations + seed, then regenerate types from it"
+dir = "{{config_root}}"
+run = [
+  "supabase db reset",
+  "supabase gen types typescript --local --schema public > apps/ui/src/lib/database.types.ts",
+  "cp apps/ui/src/lib/database.types.ts supabase/functions/_shared/database.types.ts",
+]
+
 [tasks."db:new"]
 description = "Create a new empty migration in supabase/migrations"
 usage = 'arg "<name>" help="A short snake_case description, for example add_is_admin_to_members"'
@@ -108,10 +117,6 @@ run = "supabase start"
 [tasks."db:stop"]
 description = "Stop the local Supabase stack, keeping its data"
 run = "supabase stop"
-
-[tasks."db:reset"]
-description = "Rebuild local db from migrations and seed.sql"
-run = "supabase start"
 
 [tasks."mail"]
 description = "Open the local Supabase inbox for sign-in codes (macOS only)"
