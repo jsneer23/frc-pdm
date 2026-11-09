@@ -8,16 +8,29 @@ import {
 	isOccurrencePath,
 	isOnshapeId,
 	isPositiveInteger,
+	isUuid,
 	isVisibleAscii,
 } from "../_shared/validators.ts";
 
-// part attributes stored in parts table
+type Db = SupabaseClient<Database>;
+
+// part attributes stored in parts db table
 type PartInsert = Pick<
 	TablesInsert<"parts">,
-	"subsystem_id" | "stock_id" | "machine_id" | "qty" | "name" | "cad_mass_g"
+	| "request_id"
+	| "subsystem_id"
+	| "stock_id"
+	| "machine_id"
+	| "qty"
+	| "name"
+	| "cad_mass_g"
 >;
 
-// onshape attributes stored in part_exports
+// narrow PartInsert type to require request_id. the db table allows
+// null request_ids, but every panel request must carry one
+type ValidatedPart = PartInsert & { request_id: string };
+
+// onshape attributes stored in part_exports db table
 type OnshapeFields = Pick<
 	TablesInsert<"part_exports">,
 	| "document_id"
@@ -99,27 +112,33 @@ async function handleExport(
 		.single();
 
 	if (insertError) {
+		// duplicate submission, either via a double click, or a retry after a
+		// lost response. error code and message proves the part exists
+		// so json response is a 2xx with the existing part instead of creating
+		// a second one or erroring.
+		// TODO(T24): if that part's export never started, decide whether to
+		// start it here.
+		if (
+			insertError.code === "23505" &&
+			insertError.message.includes("parts_request_id_key")
+		) {
+			const existing = await readPartNumber(db, {
+				request_id: parsed.part.request_id,
+			});
+			return partResponse(
+				existing?.id ?? null,
+				existing?.part_number ?? null,
+				200,
+			);
+		}
 		return insertErrorResponse(insertError);
 	}
 
 	// read assigned part number from db
-	const { data: numbered, error: numberError } = await db
-		.from("parts_with_number")
-		.select("part_number")
-		.eq("id", part.id)
-		.single();
-
-	if (numberError || numbered.part_number === null) {
-		console.error("Part number lookup failed:", numberError);
-		return Response.json(
-			{
-				partId: part.id, // whatever your inserted row's variable is called
-				partNumber: null,
-				warning:
-					"The part was created, but its number couldn't be read. Check the queue.",
-			},
-			{ status: 201 },
-		);
+	const numbered = await readPartNumber(db, { id: part.id });
+	const partNumber = numbered?.part_number ?? null;
+	if (partNumber === null) {
+		return partResponse(part.id, null, 201);
 	}
 
 	// only step exports work right now. do not make onshape call for any other format
@@ -155,35 +174,65 @@ async function handleExport(
 		file_format: part.machines.file_format,
 	});
 
-	const created = { partId: part.id, partNumber: numbered.part_number };
-
 	if (exportError) {
 		console.error("Export row insert failed:", exportError);
-		return Response.json(
-			{
-				...created,
-				warning: "The part was created, but its Onshape details weren't saved.",
-			},
-			{ status: 201 },
+		return partResponse(
+			part.id,
+			partNumber,
+			201,
+			"The part was created, but its Onshape details weren't saved.",
 		);
 	}
 	if (typeof started === "string") {
-		return Response.json(
-			{
-				...created,
-				warning: isSupported
-					? "The part was created, but its file export didn't start."
-					: `Part created. ${fileFormat.toUpperCase()} export isn't supported yet. Export manually.`,
-			},
-			{ status: 201 },
+		return partResponse(
+			part.id,
+			partNumber,
+			201,
+			isSupported
+				? "The part was created, but its file export didn't start."
+				: `Part created. ${fileFormat.toUpperCase()} export isn't supported yet. Export manually.`,
 		);
 	}
-	return Response.json(created, { status: 201 });
+	return partResponse(part.id, partNumber, 201);
+}
+
+async function readPartNumber(
+	db: Db,
+	match: { id: number } | { request_id: string },
+) {
+	const { data, error } = await db
+		.from("parts_with_number")
+		.select("id, part_number")
+		.match(match)
+		.maybeSingle();
+	if (error) {
+		console.error("Part number lookup failed:", error);
+	}
+	return data; // { id, part_number } or null
+}
+
+function partResponse(
+	partId: number | null,
+	partNumber: string | null,
+	status: number,
+	warning?: string,
+) {
+	return Response.json(
+		{
+			partId,
+			partNumber,
+			warning:
+				partNumber === null
+					? "The part was created, but its number couldn't be read. Check the queue."
+					: warning,
+		},
+		{ status },
+	);
 }
 
 function parseExportRequest(
 	body: unknown,
-): { part: PartInsert; onshape: OnshapeFields } | string {
+): { part: ValidatedPart; onshape: OnshapeFields } | string {
 	if (!isObject(body)) {
 		return "Request body must be an object.";
 	}
@@ -197,6 +246,11 @@ function parseExportRequest(
 	}
 
 	// part
+
+	if (!isUuid(p.requestId)) {
+		return "requestId must be a valid UUID.";
+	}
+
 	if (!isNonEmptyString(p.partName)) {
 		return "partName is required.";
 	}
@@ -254,6 +308,7 @@ function parseExportRequest(
 	// also need to translate from camel case to underscores
 	return {
 		part: {
+			request_id: p.requestId,
 			name: p.partName.trim(),
 			subsystem_id: p.subsystemId,
 			stock_id: p.stockId,
@@ -282,6 +337,11 @@ function insertErrorResponse(error: { code?: string; message: string }) {
 			return Response.json(
 				{ error: "That subsystem, stock, or machine doesn't exist." },
 				{ status: 400 },
+			);
+		case "23505": // unique. note: request_id non unique is handled elsewhere
+			return Response.json(
+				{ error: "That conflicts with an existing part." },
+				{ status: 409 },
 			);
 		case "23514": // check constraint, e.g. qty out of range
 			return Response.json(

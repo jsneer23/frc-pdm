@@ -120,6 +120,7 @@ create index machine_materials_material_id_idx on public.machine_materials (mate
 -- because trigger function always replaces it and triggers run before checks
 create table public.parts (
   id                  bigint generated always as identity primary key,
+  request_id          uuid constraint parts_request_id_key unique,
   subsystem_id        bigint not null references public.subsystems (id) on delete restrict,
   sequence_number     integer not null default 0 check (sequence_number between 1 and 999),
   name                text not null,
@@ -243,7 +244,7 @@ begin
     where auth_user_id = (select auth.uid());
 
     if member_id is null then
-      raise exception 'caller is not a member';
+      raise exception 'caller is not a member' using errcode = '42501';
     end if;
 
   new.exporter_id := member_id;

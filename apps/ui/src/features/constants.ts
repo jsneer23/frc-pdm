@@ -43,6 +43,7 @@ export type PartRequest = {
 		occurrencePath: string;
 	};
 	part: {
+		requestId: string;
 		subsystemId: number;
 		partName: string;
 		machineId: number;

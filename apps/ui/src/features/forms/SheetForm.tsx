@@ -125,6 +125,8 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 	const lastSelectionId = useRef<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
+	const requestIdRef = useRef<string | null>(null);
+
 	const robot = robots.find((r) => r.code === robotCode);
 	const availableSubsystems = robot?.subsystems ?? [];
 	const machineDef = machines[machine];
@@ -175,6 +177,11 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			"quantity",
 			"subsystem",
 		);
+
+		// resets current requestId which is used to prevent duplicate
+		// submissions. only clear upon successful submission, OR changing
+		// the request type (i.e. machine or part)
+		requestIdRef.current = null;
 	}
 
 	async function functionErrorMessage(error: unknown): Promise<string> {
@@ -189,7 +196,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			}
 			return "Something went wrong submitting the part.";
 		}
-		return "Couldn't reach the server. Check the queue before resubmitting.";
+		return "Couldn't reach the server. Try again.";
 	}
 
 	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
@@ -249,6 +256,9 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 			return;
 		}
 
+		const requestId = requestIdRef.current ?? crypto.randomUUID();
+		requestIdRef.current = requestId;
+
 		// Request
 		const request: PartRequest = {
 			onshape: {
@@ -261,6 +271,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				occurrencePath: selection.occurrencePath,
 			},
 			part: {
+				requestId: requestId,
 				partName: trimmedName,
 				subsystemId,
 				machineId,
@@ -282,8 +293,8 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				return;
 			}
 			const { data, error } = await supabase.functions.invoke<{
-				partId: number;
-				partNumber: string;
+				partId: number | null;
+				partNumber: string | null;
 				warning?: string;
 			}>("onshape/export", {
 				body: request,
@@ -293,26 +304,31 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				toast.error(await functionErrorMessage(error));
 				return;
 			}
-			if (typeof data?.partNumber === "string") {
-				toast.success(`Part ${data.partNumber} created`, {
+			const partNumber = data?.partNumber;
+			if (typeof partNumber === "string") {
+				toast.success(`Part ${partNumber} created`, {
 					duration: 10000,
 					action: {
 						label: "Copy",
 						onClick: () =>
 							navigator.clipboard
-								.writeText(data.partNumber)
+								.writeText(partNumber)
 								.then(() => toast.success("Copied"))
 								.catch(() =>
 									toast.error("Couldn't copy. Select the number and press ⌘C."),
 								),
 					},
 				});
-				if (data.warning) {
+				if (data?.warning) {
 					toast.warning(data.warning);
 				}
-				resetPartDetails("");
-				clearOnshapeSelection();
+			} else {
+				toast.warning(
+					data?.warning ?? "Part created, but its number couldn't be shown.",
+				);
 			}
+			resetPartDetails("");
+			clearOnshapeSelection();
 			if (import.meta.env.DEV) {
 				console.log(data);
 			}
