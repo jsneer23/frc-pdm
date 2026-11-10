@@ -76,7 +76,7 @@ CREATE TABLE public.robots(
   WHEN 'offseason' THEN
     'O'
   ELSE
-    '#' -- an unmapped kind matches no code; see below
+    '#' -- an unmapped kind matches no code so insert rejected (otherwise NULL would be allowed)
   END)
 );
 
@@ -110,7 +110,7 @@ GRANT SELECT ON public.subsystems TO service_role;
 CREATE TABLE public.materials(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   code text NOT NULL UNIQUE CHECK (code ~ '^[a-z0-9_]{1,50}$'),
-  label text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
+  label text NOT NULL CHECK (char_length(label) BETWEEN 1 AND 100),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -175,7 +175,7 @@ CREATE TABLE public.parts(
   request_id uuid CONSTRAINT parts_request_id_key UNIQUE,
   subsystem_id bigint NOT NULL REFERENCES public.subsystems(id) ON DELETE RESTRICT,
   sequence_number integer NOT NULL DEFAULT 0 CHECK (sequence_number BETWEEN 1 AND 999),
-  name text NOT NULL CHECK (char_length(label) BETWEEN 1 AND 100),
+  name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
   stock_id bigint NOT NULL REFERENCES public.stocks(id) ON DELETE RESTRICT,
   machine_id bigint NOT NULL REFERENCES public.machines(id) ON DELETE RESTRICT,
   qty integer NOT NULL DEFAULT 1 CHECK (qty BETWEEN 1 AND 99),
@@ -205,7 +205,7 @@ GRANT UPDATE (name, qty, status, manufacturer_id, completer_id, actual_mass_g, c
 
 GRANT SELECT ON public.parts TO service_role;
 
-CREATE INDEX exporter_id_idx ON public.parts(exporter_id);
+CREATE INDEX part_exporter_id_idx ON public.parts(exporter_id);
 
 CREATE INDEX parts_manufacturer_id_idx ON public.parts(manufacturer_id);
 
@@ -336,7 +336,7 @@ DECLARE
   next_number integer;
 BEGIN
   -- locks the subsystem row in subsystems table with "for update"
-  -- needed in case two requests com in at the same time and try to
+  -- needed in case two requests come in at the same time and try to
   -- assign part numbers based of the same current highest
   PERFORM
     1
