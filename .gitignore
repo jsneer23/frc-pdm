@@ -8,6 +8,8 @@ dist-ssr
 .tanstack
 __unconfig*
 todos.json
+/scratch/
+/supabase/snippets/
 
 # Python
 __pycache__/
