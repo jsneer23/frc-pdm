@@ -290,7 +290,6 @@ CREATE INDEX part_status_events_part_idx ON public.part_status_events(part_id, c
 CREATE FUNCTION private.assign_exporter_id()
   RETURNS TRIGGER
   LANGUAGE plpgsql
-  SECURITY DEFINER
   SET search_path = ''
   AS $$
 DECLARE
@@ -326,6 +325,8 @@ CREATE TRIGGER assign_exporter_id
   EXECUTE FUNCTION private.assign_exporter_id();
 
 -- assign unique part number trigger function
+-- needs security definer because locking a row is an update in postgres
+-- and members have no update ability on subsystems
 CREATE FUNCTION private.assign_part_number()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -377,6 +378,10 @@ CREATE TRIGGER assign_part_number
   EXECUTE FUNCTION private.assign_part_number();
 
 -- is_member and is_admin authentication for rls policies
+-- security definer because we need to avoid the rls policy that allows
+-- members to read the members table. if we didn't, this is_member functon
+-- reads members table, which triggers the rls check which calls this function.
+-- which causes an infinite recursion
 CREATE FUNCTION private.is_member()
   RETURNS boolean
   LANGUAGE sql
@@ -396,6 +401,7 @@ CREATE FUNCTION private.is_member()
             auth.uid()));
 $$;
 
+-- see comment above for discussion of security definer
 CREATE FUNCTION private.is_admin()
   RETURNS boolean
   LANGUAGE sql
@@ -440,6 +446,7 @@ $$;
 
 -- part_status trigger function
 -- make database write changes to part_status_events upon every status change
+-- needs security definer because members cannot insert into part_status_events
 CREATE FUNCTION private.record_status_event()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -613,6 +620,94 @@ CREATE TRIGGER link_member_on_account_email_change
   FOR EACH ROW
   WHEN(old.email IS DISTINCT FROM new.email)
   EXECUTE FUNCTION private.link_member_to_account();
+
+-- verify that a part's material is something the machine selected can cut
+-- the onshape form only holds valid pairs, but it is possible to submit
+-- something incorrect
+CREATE FUNCTION private.check_machine_material()
+  RETURNS TRIGGER
+  LANGUAGE plpgslq
+  SET search_path = ''
+  AS $$
+declare
+    machine_label  text;
+    material_label text;
+begin
+    if exists (
+        select 1
+        from public.stocks s
+        join public.machine_materials mm on mm.material_id = s.material_id
+        where s.id = new.stock_id
+          and mm.machine_id = new.machine_id
+    ) then
+        return new;
+    end if;
+
+    select label into machine_label
+    from public.machines where id = new.machine_id;
+
+    select m.label into material_label
+    from public.stocks s
+    join public.materials m on m.id = s.material_id
+    where s.id = new.stock_id;
+
+    if machine_label is null or material_label is null then
+        return new;  -- missing row: the foreign key check reports it
+    end if;
+
+    raise exception 'The % can''t cut %.', machine_label, material_label
+        using errcode = 'P5507';
+end;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.check_machine_material() FROM public, anon, authenticated;
+
+-- members can't change stock_id or machine_id after insert, but an
+-- admin editing in SQL can, so updates are checked too
+CREATE TRIGGER check_machine_material
+  BEFORE INSERT OR UPDATE OF stock_id,
+  machine_id ON public.parts
+  FOR EACH ROW
+  EXECUTE FUNCTION private.check_machine_material();
+
+-- an export's kind (face or body) must match what the selected machine expects
+-- machines without a selection (saw, lathe) have no Onshape selection rule,
+-- so any kind is accepted for them.
+CREATE FUNCTION private.check_export_kind()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SET search_path = ''
+  AS $$
+DECLARE
+  machine_label text;
+  machine_selection public.part_kind;
+BEGIN
+  SELECT
+    ma.label,
+    ma.selection
+  INTO
+    machine_label,
+    machine_selection
+  FROM
+    public.parts p
+    JOIN public.machines ma ON ma.id = p.machine_id
+  WHERE
+    p.id = NEW.part_id;
+  IF machine_selection IS NULL OR NEW.kind = machine_selection THEN
+    RETURN new;
+    -- also covers a missing part: the foreign key reports it
+  END IF;
+  RAISE EXCEPTION 'The % needs a % selected, not a %.', machine_label, machine_selection, NEW.kind
+    USING errcode = 'P5507';
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.check_export_kind() FROM public, anon, authenticated;
+
+CREATE TRIGGER check_export_kind
+  BEFORE INSERT OR UPDATE OF kind ON public.part_exports
+  FOR EACH ROW
+  EXECUTE FUNCTION private.check_export_kind();
 
 -- rls policies
 -- admin
