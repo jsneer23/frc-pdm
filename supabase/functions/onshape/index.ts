@@ -331,8 +331,14 @@ function parseExportRequest(
 // convert postgres error codes to json response
 function insertErrorResponse(error: { code?: string; message: string }) {
 	switch (error.code) {
-		case "P0001": // raised exception in assign_part_number
+		case "P5507": // a rule the student broke; the message is written for them
 			return Response.json({ error: error.message }, { status: 400 });
+		case "P0001": // a plain raise: an internal error, so don't show its text
+			console.error("Part insert raised:", error);
+			return Response.json(
+				{ error: "Could not create the part." },
+				{ status: 500 },
+			);
 		case "23503": // foreign key: subsystem, stock, or machine doesn't exist
 			return Response.json(
 				{ error: "That subsystem, stock, or machine doesn't exist." },

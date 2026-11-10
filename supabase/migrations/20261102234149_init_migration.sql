@@ -205,7 +205,7 @@ GRANT UPDATE (name, qty, status, manufacturer_id, completer_id, actual_mass_g, c
 
 GRANT SELECT ON public.parts TO service_role;
 
-CREATE INDEX part_exporter_id_idx ON public.parts(exporter_id);
+CREATE INDEX parts_exporter_id_idx ON public.parts(exporter_id);
 
 CREATE INDEX parts_manufacturer_id_idx ON public.parts(manufacturer_id);
 
@@ -335,19 +335,25 @@ CREATE FUNCTION private.assign_part_number()
   AS $$
 DECLARE
   next_number integer;
+  subsystem_label text;
 BEGIN
   -- locks the subsystem row in subsystems table with "for update"
   -- needed in case two requests come in at the same time and try to
   -- assign part numbers based of the same current highest
-  PERFORM
-    1
+  SELECT
+    r.code || '-' || s.code
+  INTO
+    subsystem_label
   FROM
-    public.subsystems
+    public.subsystems s
+    JOIN public.robots r ON r.id = s.robot_id
   WHERE
-    id = NEW.subsystem_id
-  FOR UPDATE;
+    s.id = NEW.subsystem_id
+  FOR UPDATE
+    OF s;
   IF NOT found THEN
-    RAISE EXCEPTION 'subsystem % does not exist', NEW.subsystem_id;
+    RAISE EXCEPTION 'That subsystem does not exist.'
+      USING errcode = 'P5507';
   END IF;
   -- get highest part number used so far, or 0 if there are no parts
   SELECT
@@ -359,7 +365,8 @@ BEGIN
   WHERE
     subsystem_id = NEW.subsystem_id;
   IF next_number > 999 THEN
-    RAISE EXCEPTION 'subsystem % has no part numbers left', NEW.subsystem_id;
+    RAISE EXCEPTION 'Subsystem % has no part numbers left. Ask an admin.', subsystem_label
+      USING errcode = 'P5507';
   END IF;
   -- overwrite the part number already in the request
   NEW.sequence_number := next_number;
@@ -379,7 +386,7 @@ CREATE TRIGGER assign_part_number
 
 -- is_member and is_admin authentication for rls policies
 -- security definer because we need to avoid the rls policy that allows
--- members to read the members table. if we didn't, this is_member functon
+-- members to read the members table. if we didn't, this is_member function
 -- reads members table, which triggers the rls check which calls this function.
 -- which causes an infinite recursion
 CREATE FUNCTION private.is_member()
@@ -621,43 +628,53 @@ CREATE TRIGGER link_member_on_account_email_change
   WHEN(old.email IS DISTINCT FROM new.email)
   EXECUTE FUNCTION private.link_member_to_account();
 
--- verify that a part's material is something the machine selected can cut
+-- verify that a parts material is something the machine selected can cut
 -- the onshape form only holds valid pairs, but it is possible to submit
 -- something incorrect
 CREATE FUNCTION private.check_machine_material()
   RETURNS TRIGGER
-  LANGUAGE plpgslq
+  LANGUAGE plpgsql
   SET search_path = ''
   AS $$
-declare
-    machine_label  text;
-    material_label text;
-begin
-    if exists (
-        select 1
-        from public.stocks s
-        join public.machine_materials mm on mm.material_id = s.material_id
-        where s.id = new.stock_id
-          and mm.machine_id = new.machine_id
-    ) then
-        return new;
-    end if;
-
-    select label into machine_label
-    from public.machines where id = new.machine_id;
-
-    select m.label into material_label
-    from public.stocks s
-    join public.materials m on m.id = s.material_id
-    where s.id = new.stock_id;
-
-    if machine_label is null or material_label is null then
-        return new;  -- missing row: the foreign key check reports it
-    end if;
-
-    raise exception 'The % can''t cut %.', machine_label, material_label
-        using errcode = 'P5507';
-end;
+DECLARE
+  machine_label text;
+  material_label text;
+BEGIN
+  IF EXISTS (
+    SELECT
+      1
+    FROM
+      public.stocks s
+      JOIN public.machine_materials mm ON mm.material_id = s.material_id
+    WHERE
+      s.id = NEW.stock_id
+      AND mm.machine_id = NEW.machine_id) THEN
+  RETURN NEW;
+END IF;
+  SELECT
+    label
+  INTO
+    machine_label
+  FROM
+    public.machines
+  WHERE
+    id = NEW.machine_id;
+  SELECT
+    m.label
+  INTO
+    material_label
+  FROM
+    public.stocks s
+    JOIN public.materials m ON m.id = s.material_id
+  WHERE
+    s.id = NEW.stock_id;
+  -- missing row: the foreign key check reports it
+  IF machine_label IS NULL OR material_label IS NULL THEN
+    RETURN NEW;
+  END IF;
+  RAISE EXCEPTION 'The % cannot cut %.', machine_label, material_label
+  USING errcode = 'P5507';
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION private.check_machine_material() FROM public, anon, authenticated;
@@ -673,9 +690,11 @@ CREATE TRIGGER check_machine_material
 -- an export's kind (face or body) must match what the selected machine expects
 -- machines without a selection (saw, lathe) have no Onshape selection rule,
 -- so any kind is accepted for them.
+-- needs security definer for serivce_role
 CREATE FUNCTION private.check_export_kind()
   RETURNS TRIGGER
   LANGUAGE plpgsql
+  SECURITY DEFINER
   SET search_path = ''
   AS $$
 DECLARE
@@ -693,9 +712,9 @@ BEGIN
     JOIN public.machines ma ON ma.id = p.machine_id
   WHERE
     p.id = NEW.part_id;
+  -- also covers a missing part: the foreign key reports it
   IF machine_selection IS NULL OR NEW.kind = machine_selection THEN
     RETURN new;
-    -- also covers a missing part: the foreign key reports it
   END IF;
   RAISE EXCEPTION 'The % needs a % selected, not a %.', machine_label, machine_selection, NEW.kind
     USING errcode = 'P5507';
