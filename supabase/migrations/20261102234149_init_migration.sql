@@ -39,7 +39,7 @@ CREATE TYPE export_status AS enum(
 -- members
 CREATE TABLE public.members(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name text NOT NULL,
+  name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
   email text NOT NULL UNIQUE CONSTRAINT members_email_format CHECK (char_length(email) <= 254 AND email LIKE '_%@_%'),
   is_admin boolean NOT NULL DEFAULT FALSE,
   auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -59,9 +59,25 @@ CREATE TABLE public.robots(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   season integer NOT NULL CHECK (season BETWEEN 2026 AND 2040),
   kind robot_kind NOT NULL,
-  code text NOT NULL UNIQUE CHECK (code ~ '^[0-9]{2}[A-Z]?$'),
-  name text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  code text NOT NULL UNIQUE CHECK (code ~ '^[0-9]{2}[A-Z]$'),
+  name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  -- code is a season's last two digits plus a letter for the
+  -- robot type. i.e. 27A is 2027 alpha, 26O is 2026 offseason
+  -- constraint verifies the kind, season, and code match
+  CONSTRAINT robots_code_matches_season_and_kind CHECK (LEFT (code, 2) =
+  RIGHT (season::text, 2) AND substr(code, 3) = CASE kind
+  WHEN 'alpha' THEN
+    'A'
+  WHEN 'beta' THEN
+    'B'
+  WHEN 'competition' THEN
+    'C'
+  WHEN 'offseason' THEN
+    'O'
+  ELSE
+    '#' -- an unmapped kind matches no code; see below
+  END)
 );
 
 ALTER TABLE public.robots ENABLE ROW LEVEL SECURITY;
@@ -77,7 +93,7 @@ CREATE TABLE public.subsystems(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   robot_id bigint NOT NULL REFERENCES public.robots(id) ON DELETE RESTRICT,
   code text NOT NULL CHECK (code ~ '^[A-Z]{2,4}$'),
-  name text NOT NULL,
+  name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (robot_id, code)
 );
@@ -93,8 +109,8 @@ GRANT SELECT ON public.subsystems TO service_role;
 -- materials
 CREATE TABLE public.materials(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  code text NOT NULL UNIQUE,
-  label text NOT NULL,
+  code text NOT NULL UNIQUE CHECK (code ~ '^[a-z0-9_]{1,50}$'),
+  label text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -122,8 +138,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.stocks TO authenticated;
 -- machines
 CREATE TABLE public.machines(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  code text NOT NULL UNIQUE,
-  label text NOT NULL,
+  code text NOT NULL UNIQUE CHECK (code ~ '^[a-z0-9_]{1,50}$'),
+  label text NOT NULL CHECK (char_length(label) BETWEEN 1 AND 100),
   file_format export_format NOT NULL,
   selection part_kind,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -159,7 +175,7 @@ CREATE TABLE public.parts(
   request_id uuid CONSTRAINT parts_request_id_key UNIQUE,
   subsystem_id bigint NOT NULL REFERENCES public.subsystems(id) ON DELETE RESTRICT,
   sequence_number integer NOT NULL DEFAULT 0 CHECK (sequence_number BETWEEN 1 AND 999),
-  name text NOT NULL,
+  name text NOT NULL CHECK (char_length(label) BETWEEN 1 AND 100),
   stock_id bigint NOT NULL REFERENCES public.stocks(id) ON DELETE RESTRICT,
   machine_id bigint NOT NULL REFERENCES public.machines(id) ON DELETE RESTRICT,
   qty integer NOT NULL DEFAULT 1 CHECK (qty BETWEEN 1 AND 99),
@@ -167,7 +183,7 @@ CREATE TABLE public.parts(
   exporter_id bigint NOT NULL DEFAULT 0 REFERENCES public.members(id) ON DELETE RESTRICT,
   manufacturer_id bigint REFERENCES public.members(id) ON DELETE RESTRICT,
   completer_id bigint REFERENCES public.members(id) ON DELETE RESTRICT,
-  cad_mass_g numeric(8, 1) CHECK (cad_mass_g > 0),
+  cad_mass_g numeric(8, 1) CHECK (cad_mass_g > 0 AND cad_mass_g <= 22679.6),
   actual_mass_g numeric(8, 1) CHECK (actual_mass_g > 0),
   supersedes_part_id bigint UNIQUE REFERENCES public.parts(id) ON DELETE RESTRICT,
   deprecated_at timestamptz,
@@ -228,13 +244,13 @@ CREATE TABLE public.part_exports(
   selection_id text NOT NULL CONSTRAINT part_exports_selection_id_format CHECK (selection_id ~ '^[!-~]{1,100}$'),
   microversion_id text NOT NULL CONSTRAINT part_exports_microversion_id_format CHECK (microversion_id ~ '^[0-9a-f]{24}$'),
   occurrence_path text NOT NULL CHECK (occurrence_path <> '') CONSTRAINT part_exports_occurrence_path_format CHECK (char_length(occurrence_path) <= 500 AND occurrence_path ~ '^[!-~]+$' AND occurrence_path ~ '^[^.]+(\.[^.]+)*$'),
-  translation_id text UNIQUE,
+  translation_id text UNIQUE CHECK (char_length(translation_id) <= 100),
   status export_status NOT NULL DEFAULT 'exporting',
-  failure_reason text,
-  configuration text,
+  failure_reason text CHECK (char_length(failure_reason) <= 1000),
+  configuration text CHECK (char_length(configuration) <= 1000),
   kind part_kind NOT NULL,
   file_format export_format NOT NULL,
-  file_path text,
+  file_path text CHECK (char_length(file_path) <= 500),
   requested_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz,
   attempts integer NOT NULL DEFAULT 1 CHECK (attempts >= 1)
