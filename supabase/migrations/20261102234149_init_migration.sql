@@ -40,6 +40,7 @@ CREATE TYPE export_status AS enum(
 CREATE TABLE public.members(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name text NOT NULL,
+  email text NOT NULL UNIQUE CONSTRAINT members_email_format CHECK (char_length(email) <= 254 AND email LIKE '_%@_%'),
   is_admin boolean NOT NULL DEFAULT FALSE,
   auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -508,6 +509,94 @@ CREATE TRIGGER set_parts_updated_at
   BEFORE UPDATE ON public.parts
   FOR EACH ROW
   EXECUTE FUNCTION private.set_updated_at();
+
+-- members/admin table triggers
+-- auth_user_id is derived from the auth table and is based on string matching
+-- emails between the two tables. requires SECURITY DEFINER because members
+-- cannot read the auth schema
+CREATE FUNCTION private.link_account_to_member()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = ''
+  AS $$
+BEGIN
+  NEW.email := lower(btrim(NEW.email));
+  -- no matching account leaves auth_user_id null
+  NEW.auth_user_id :=(
+    SELECT
+      u.id
+    FROM
+      auth.users u
+    WHERE
+      lower(u.email) = NEW.email
+      AND NOT u.is_sso_user);
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.link_account_to_member() FROM public, anon, authenticated;
+
+-- firing on every update "disallows" edits to auth_user_id, because any
+-- edit will always be replaced by a fresh fetch from the trigger function
+CREATE TRIGGER link_account_to_member
+  BEFORE INSERT OR UPDATE ON public.members
+  FOR EACH ROW
+  EXECUTE FUNCTION private.link_account_to_member();
+
+-- link members to account upon account creation/update
+-- requires SECURITY DEFINER because it runs as auths database role, which doesn't
+-- have access to public.members
+CREATE FUNCTION private.link_member_to_account()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = ''
+  AS $$
+BEGIN
+  BEGIN
+    -- if a member's auth_user_id points to this account AND the member email
+    -- does not match the auth email, remove auth_user_id from that member
+    UPDATE
+      public.members
+    SET
+      auth_user_id = NULL
+    WHERE
+      auth_user_id = NEW.id
+      AND email <> lower(NEW.email);
+    -- if a member has an email that matches an auth account then set the
+    -- auth_user_id to the auth id
+    UPDATE
+      public.members
+    SET
+      auth_user_id = NEW.id
+    WHERE
+      email = lower(NEW.email);
+    -- if the above raised an error, creating the account would fail. instead,
+    -- every error is caught and logged as a warning. this way the account is
+    -- always saved, and a missed link to members can be fixed by re-saving the member.
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE warning 'link_member_to_account failed for account %: %', NEW.id, sqlerrm;
+  END;
+  RETURN NULL;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.link_member_to_account() FROM public, anon, authenticated;
+
+CREATE TRIGGER link_member_on_account_insert
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION private.link_member_to_account();
+
+-- only call trigger function when update actually changes the email
+-- needed because auth updates its rows often (i.e. every sign on)
+CREATE TRIGGER link_member_on_account_email_change
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW
+  WHEN(old.email IS DISTINCT FROM new.email)
+  EXECUTE FUNCTION private.link_member_to_account();
 
 -- rls policies
 -- admin

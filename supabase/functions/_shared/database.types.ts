@@ -61,14 +61,14 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "auth_user_id": string | null,"created_at": string,"id": number,"is_admin": boolean,"name": string
+                    "auth_user_id": string | null,"created_at": string,"email": string,"id": number,"is_admin": boolean,"name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "auth_user_id"?: string | null,"created_at"?: string,"id"?: never,"is_admin"?: boolean,"name": string
+                    "auth_user_id"?: string | null,"created_at"?: string,"email": string,"id"?: never,"is_admin"?: boolean,"name": string
                   }
                   Update: {
-                    "auth_user_id"?: string | null,"created_at"?: string,"id"?: never,"is_admin"?: boolean,"name"?: string
+                    "auth_user_id"?: string | null,"created_at"?: string,"email"?: string,"id"?: never,"is_admin"?: boolean,"name"?: string
                   }
                   Relationships: [
                     
