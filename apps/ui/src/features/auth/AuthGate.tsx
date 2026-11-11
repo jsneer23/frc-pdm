@@ -2,6 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { LoginForm } from "./LoginForm";
+import { SessionContext } from "./sessionContext";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
 	// if session is undefined still checking, if null then signed out
@@ -39,7 +40,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 	}
 	// if session is unauthenticated (i.e. null) render the LoginForm
 	else if (session === null) {
-		return <LoginForm />;
+		return (
+			<div className="flex min-h-dvh items-center justify-center bg-muted p-6">
+				<div className="w-full max-w-lg">
+					<LoginForm />
+				</div>
+			</div>
+		);
 	}
-	return children;
+	return <SessionContext value={session}>{children}</SessionContext>;
 }
