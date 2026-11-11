@@ -76,6 +76,7 @@ function useRealSelection({ kind, onSelect }: Options) {
 			if (!isObject(data) || data.messageName !== "REQUESTED_SELECTION") {
 				return;
 			}
+			console.log(data);
 			if (data.messageId !== requestIdRef.current) {
 				return;
 			}
@@ -143,18 +144,22 @@ function parseSelection(raw: unknown): OnshapeSelection | string {
 	const {
 		selectionType,
 		selectionId,
+		entityType,
 		workspaceMicroversionId,
 		occurrencePath,
 	} = raw;
 
 	const kind =
-		selectionType === "FACE"
+		selectionType === "ENTITY"
 			? "face"
 			: selectionType === "BODY"
 				? "body"
 				: null;
 	if (kind === null) {
 		return "Select a part or a face.";
+	}
+	if (selectionType === "face" && entityType !== "face") {
+		return "Entity selected is not a face.";
 	}
 
 	if (
