@@ -251,7 +251,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				documentId: onshapeContext.documentId, // document
 				workspaceId: onshapeContext.workspaceId, // branch
 				elementId: onshapeContext.elementId, // tab
-				kind: selection.entityType === "FACE" ? "face" : "body",
+				kind: selection.kind,
 				selectionId: selection.selectionId,
 				microversionId: selection.microversionId, // exact state of document in between each version. updates upon every edit
 				occurrencePath: selection.occurrencePath,

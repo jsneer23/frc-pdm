@@ -1,8 +1,8 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { isObject } from "../../lib/validators";
 
 export type SelectionType = "face" | "body";
-export type EntityType = "FACE" | "undefined";
 
 export type PartRequest = {
 	onshape: {
@@ -74,8 +74,4 @@ function isPartRequestResponse(data: unknown): PartRequestResponse {
 		throw new Error("Unexpected response from the server.");
 	}
 	return { partId, partNumber, warning };
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }

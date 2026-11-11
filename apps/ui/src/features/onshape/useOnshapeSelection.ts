@@ -1,26 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import type { EntityType, SelectionType } from "../part-request/api";
+import { toast } from "sonner";
+import { isObject } from "../../lib/validators";
+import type { SelectionType } from "../part-request/api";
 import { onOnshapeMessage, onshapeMode, postToOnshape } from "./onshapeClient";
 
 export type OnshapeSelection = {
-	selectionType: SelectionType;
-	selectionId: string; // face ID or part ID
-	entityType: EntityType;
+	kind: SelectionType;
+	selectionId: string;
 	microversionId: string;
 	occurrencePath: string;
-};
-
-type RequestedSelectionMessage = {
-	messageName: "REQUESTED_SELECTION";
-	messageId: string;
-	status: { statusCode: string };
-	selections: {
-		selectionType: SelectionType;
-		selectionId: string;
-		entityType: EntityType;
-		workspaceMicroversionId: string;
-		occurrencePath: string[];
-	}[];
 };
 
 type Options = {
@@ -46,9 +34,8 @@ function useFakeSelection({ kind, onSelect }: Options) {
 
 		timerRef.current = window.setTimeout(() => {
 			const next: OnshapeSelection = {
-				selectionType: kind,
+				kind: kind,
 				selectionId: "S2H2I_TEST",
-				entityType: kind === "face" ? "FACE" : "undefined",
 				microversionId: "55071a44bda7eb00b1963ce7",
 				occurrencePath: "Mfo9ZFYspBjSQwlEr.I9Knb2G4JGJZuQeTt",
 			};
@@ -86,38 +73,39 @@ function useRealSelection({ kind, onSelect }: Options) {
 
 	useEffect(() => {
 		return onOnshapeMessage((data) => {
-			const msg = data as RequestedSelectionMessage;
-			if (msg?.messageName !== "REQUESTED_SELECTION") {
+			if (!isObject(data) || data.messageName !== "REQUESTED_SELECTION") {
 				return;
 			}
-			if (msg.messageId !== requestIdRef.current) {
+			if (data.messageId !== requestIdRef.current) {
 				return;
 			}
-			if (msg.status.statusCode === "PENDING") {
+			const statusCode = isObject(data.status)
+				? data.status.statusCode
+				: undefined;
+			if (statusCode === "PENDING") {
 				return;
 			}
 
 			requestIdRef.current = null;
 			setIsSelecting(false);
 
-			if (msg.status.statusCode !== "SUCCESS") {
+			if (statusCode !== "SUCCESS") {
 				return;
 			}
 
-			const first = msg.selections?.[0];
-			if (!first) {
+			const selections = data.selections;
+			if (!Array.isArray(selections) || selections.length === 0) {
+				return;
+			}
+			const parsed = parseSelection(selections[0]);
+
+			if (typeof parsed === "string") {
+				toast.error(parsed);
 				return;
 			}
 
-			const next: OnshapeSelection = {
-				selectionType: first.selectionType,
-				selectionId: first.selectionId,
-				entityType: first.entityType,
-				microversionId: first.workspaceMicroversionId,
-				occurrencePath: first.occurrencePath.join("."),
-			};
-			setSelection(next);
-			onSelectRef.current(next);
+			setSelection(parsed);
+			onSelectRef.current(parsed);
 		});
 	}, []);
 
@@ -146,6 +134,50 @@ function useRealSelection({ kind, onSelect }: Options) {
 	}
 
 	return { selection, isSelecting, start, cancel, clear };
+}
+
+function parseSelection(raw: unknown): OnshapeSelection | string {
+	if (!isObject(raw)) {
+		return "Unexpected selection from Onshape.";
+	}
+	const {
+		selectionType,
+		selectionId,
+		workspaceMicroversionId,
+		occurrencePath,
+	} = raw;
+
+	const kind =
+		selectionType === "FACE"
+			? "face"
+			: selectionType === "BODY"
+				? "body"
+				: null;
+	if (kind === null) {
+		return "Select a part or a face.";
+	}
+
+	if (
+		typeof selectionId !== "string" ||
+		typeof workspaceMicroversionId !== "string"
+	) {
+		return "Unexpected selection from Onshape.";
+	}
+	if (
+		!Array.isArray(occurrencePath) ||
+		occurrencePath.length === 0 ||
+		!occurrencePath.every((id) => typeof id === "string")
+	) {
+		return "Select the part in an assembly, not a Part Studio.";
+	}
+	const selection: OnshapeSelection = {
+		kind: kind,
+		selectionId: selectionId,
+		microversionId: workspaceMicroversionId,
+		occurrencePath: occurrencePath.join("."),
+	};
+
+	return selection;
 }
 
 const useFake = onshapeMode === "demo";
