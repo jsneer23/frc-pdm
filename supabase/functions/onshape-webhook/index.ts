@@ -99,8 +99,8 @@ async function handleTranslationComplete(
 		return markFailed(ctx, row.id, "Couldn't read the part number.");
 	}
 
-	// Exports are always STEP for now, whatever the machine's file_format.
-	const path = `${row.id}/${part.part_number}.step`;
+	// onshape downloads come zipped, not .step or .dxf
+	const path = `${row.id}/${part.part_number}.zip`;
 	const { error: uploadError } = await admin.storage
 		.from(BUCKET)
 		.upload(path, file.bytes, { contentType: "model/step", upsert: true });
