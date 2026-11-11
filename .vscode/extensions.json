@@ -2,7 +2,10 @@
 	"recommendations": [
 		"biomejs.biome",
 		"bradlc.vscode-tailwindcss",
-		"dbaeumer.vscode-eslint",
-		"denoland.vscode-deno"
+		"denoland.vscode-deno",
+		"bradymholt.pgformatter",
+		"ms-ossdata.vscode-pgsql",
+		"hverlin.mise-vscode",
+		"tamasfe.even-better-toml"
 	]
 }

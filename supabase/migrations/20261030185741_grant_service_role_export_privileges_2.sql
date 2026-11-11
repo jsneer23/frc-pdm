@@ -1,1 +1,0 @@
-grant select, insert, update on public.part_exports to service_role;

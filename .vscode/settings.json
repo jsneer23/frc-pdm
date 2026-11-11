@@ -57,5 +57,9 @@
 		"http",
 		"net"
 	],
-	"deno.enable": true
+	"deno.enable": true,
+	"[sql]": {
+		"editor.defaultFormatter": "bradymholt.pgformatter",
+		"editor.formatOnSave": true
+	}
 }

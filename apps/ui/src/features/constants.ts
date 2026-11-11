@@ -34,7 +34,6 @@ export type PartTypeId = keyof typeof PART_TYPES;
 
 export type PartRequest = {
 	onshape: {
-		userId: string;
 		documentId: string;
 		workspaceId: string;
 		elementId: string;
@@ -44,6 +43,7 @@ export type PartRequest = {
 		occurrencePath: string;
 	};
 	part: {
+		requestId: string;
 		subsystemId: number;
 		partName: string;
 		machineId: number;
