@@ -116,8 +116,6 @@ async function handleExport(
 		// lost response. error code and message proves the part exists
 		// so json response is a 2xx with the existing part instead of creating
 		// a second one or erroring.
-		// TODO(T24): if that part's export never started, decide whether to
-		// start it here.
 		if (
 			insertError.code === "23505" &&
 			insertError.message.includes("parts_request_id_key")
@@ -125,10 +123,25 @@ async function handleExport(
 			const existing = await readPartNumber(db, {
 				request_id: parsed.part.request_id,
 			});
+			// if the export never started do not retry here - export issues will be
+			// handled by manufacturing queue
+			let warning: string | undefined;
+			if (existing?.id != null) {
+				const { data: exportRow } = await db
+					.from("part_exports")
+					.select("status")
+					.eq("part_id", existing.id)
+					.maybeSingle();
+				if (exportRow === null || exportRow.status === "failed") {
+					warning =
+						"The part was created, but its file export didn't start. Retry it from the queue.";
+				}
+			}
 			return partResponse(
 				existing?.id ?? null,
 				existing?.part_number ?? null,
 				200,
+				warning,
 			);
 		}
 		return insertErrorResponse(insertError);
