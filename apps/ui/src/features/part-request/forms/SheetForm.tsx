@@ -1,4 +1,3 @@
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2Icon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -25,7 +24,6 @@ import {
 	type RobotRow,
 	robotsQueryOptions,
 } from "@/features/reference-data/queries";
-import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { PartRequest } from "../api";
 import { QuantityField } from "../fields/QuantityField";
@@ -33,9 +31,10 @@ import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
 import { WeightField } from "../fields/WeightField";
 import { PART_TYPES } from "../partTypes";
-import { MachineSelectionCard } from "../steps/MachineSelectionStep";
-import { PartDetailsCard } from "../steps/PartDetailsStep";
-import { OnshapeSelectionCard } from "../steps/PartSelectionStep";
+import { MachineSelectionStep } from "../steps/MachineSelectionStep";
+import { PartDetailsStep } from "../steps/PartDetailsStep";
+import { PartSelectionStep } from "../steps/PartSelectionStep";
+import { useSubmitPartRequest } from "../useSubmitPartRequest";
 
 type FormErrors = Partial<
 	Record<
@@ -124,9 +123,10 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 	const [weightLb, setWeightLb] = useState<string>("");
 	const [errors, setErrors] = useState<FormErrors>({});
 	const lastSelectionId = useRef<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const requestIdRef = useRef<string | null>(null);
+
+	const submit = useSubmitPartRequest();
 
 	const robot = robots.find((r) => r.code === robotCode);
 	const availableSubsystems = robot?.subsystems ?? [];
@@ -185,22 +185,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		requestIdRef.current = null;
 	}
 
-	async function functionErrorMessage(error: unknown): Promise<string> {
-		if (error instanceof FunctionsHttpError) {
-			try {
-				const body = await error.context.json();
-				if (typeof body?.error === "string") {
-					return body.error;
-				}
-			} catch {
-				// The response wasn't JSON; fall through to the general message.
-			}
-			return "Something went wrong submitting the part.";
-		}
-		return "Couldn't reach the server. Try again.";
-	}
-
-	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+	function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		const nextErrors: FormErrors = {};
@@ -285,57 +270,20 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 		if (import.meta.env.DEV) {
 			console.log(request);
 		}
-		setIsSubmitting(true);
-		try {
-			if (onshapeMode === "demo") {
-				resetPartDetails("");
-				clearOnshapeSelection();
-				toast.info("Demo mode: nothing was submitted.");
-				return;
-			}
-			const { data, error } = await supabase.functions.invoke<{
-				partId: number | null;
-				partNumber: string | null;
-				warning?: string;
-			}>("onshape/export", {
-				body: request,
-			});
-			if (error) {
-				console.error(error);
-				toast.error(await functionErrorMessage(error));
-				return;
-			}
-			const partNumber = data?.partNumber;
-			if (typeof partNumber === "string") {
-				toast.success(`Part ${partNumber} created`, {
-					duration: 10000,
-					action: {
-						label: "Copy",
-						onClick: () =>
-							navigator.clipboard
-								.writeText(partNumber)
-								.then(() => toast.success("Copied"))
-								.catch(() =>
-									toast.error("Couldn't copy. Select the number and press ⌘C."),
-								),
-					},
-				});
-				if (data?.warning) {
-					toast.warning(data.warning);
-				}
-			} else {
-				toast.warning(
-					data?.warning ?? "Part created, but its number couldn't be shown.",
-				);
-			}
+
+		if (onshapeMode === "demo") {
 			resetPartDetails("");
 			clearOnshapeSelection();
-			if (import.meta.env.DEV) {
-				console.log(data);
-			}
-		} finally {
-			setIsSubmitting(false);
+			toast.info("Demo mode: nothing was submitted.");
+			return;
 		}
+
+		submit.mutate(request, {
+			onSuccess: () => {
+				resetPartDetails("");
+				clearOnshapeSelection();
+			},
+		});
 	}
 
 	function clearError(...fields: (keyof FormErrors)[]) {
@@ -367,13 +315,13 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-			<MachineSelectionCard
+			<MachineSelectionStep
 				step={1}
 				options={machineItems}
 				value={machine}
 				onChange={handleMachineChange}
 			/>
-			<OnshapeSelectionCard
+			<PartSelectionStep
 				step={2}
 				kind={machineDef.selection}
 				selection={selection}
@@ -382,7 +330,7 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 				onCancel={cancel}
 				error={errors.selection}
 			/>
-			<PartDetailsCard
+			<PartDetailsStep
 				step={3}
 				actions={
 					<Field>
@@ -521,12 +469,12 @@ function SheetFormFields({ machines, robots }: SheetFormProps) {
 						/>
 					</div>
 				</FieldGroup>
-			</PartDetailsCard>
-			<Button type="submit" className="w-full" disabled={isSubmitting}>
-				{isSubmitting && (
+			</PartDetailsStep>
+			<Button type="submit" className="w-full" disabled={submit.isPending}>
+				{submit.isPending && (
 					<Loader2Icon data-icon="inline-start" className="animate-spin" />
 				)}
-				{isSubmitting ? "Submitting…" : "Submit Request"}
+				{submit.isPending ? "Submitting…" : "Submit Request"}
 			</Button>
 		</form>
 	);

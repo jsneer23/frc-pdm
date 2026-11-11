@@ -24,7 +24,7 @@ type MachineCardProps<T extends string> = {
 	step?: number;
 };
 
-export function MachineSelectionCard<T extends string>({
+export function MachineSelectionStep<T extends string>({
 	options,
 	value,
 	onChange,

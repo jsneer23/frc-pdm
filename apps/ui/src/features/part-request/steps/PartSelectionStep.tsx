@@ -44,7 +44,7 @@ type SelectionCardProps = {
 	error?: string;
 };
 
-export function OnshapeSelectionCard({
+export function PartSelectionStep({
 	kind,
 	selection,
 	isSelecting,

@@ -7,7 +7,7 @@ type PartDetailsCardProps = {
 	children: React.ReactNode;
 };
 
-export function PartDetailsCard({
+export function PartDetailsStep({
 	step,
 	actions,
 	children,
