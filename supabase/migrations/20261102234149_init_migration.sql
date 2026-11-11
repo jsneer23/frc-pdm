@@ -615,6 +615,13 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION private.link_member_to_account() FROM public, anon, authenticated;
 
+-- remote db reset doesn't change or do anything to auth schema. it is managed
+-- by supabase.  therefore need to drop triggers before creating them in order
+-- for migration to run again
+DROP TRIGGER IF EXISTS link_member_on_account_insert ON auth.users;
+
+DROP TRIGGER IF EXISTS link_member_on_account_email_change ON auth.users;
+
 CREATE TRIGGER link_member_on_account_insert
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -631,6 +638,11 @@ CREATE TRIGGER link_member_on_account_email_change
 -- verify that a parts material is something the machine selected can cut
 -- the onshape form only holds valid pairs, but it is possible to submit
 -- something incorrect
+-- notice this function runs as the caller (i.e. security invoker not definer)
+-- so it relies on every caller having rls permissions to read stocks,
+-- machine_materials, machines, and materials. if the account is unable to see
+-- those rows, the check is silently skipped.
+-- you may need SECURITY DEFINER if rls changes later
 CREATE FUNCTION private.check_machine_material()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -690,7 +702,7 @@ CREATE TRIGGER check_machine_material
 -- an export's kind (face or body) must match what the selected machine expects
 -- machines without a selection (saw, lathe) have no Onshape selection rule,
 -- so any kind is accepted for them.
--- needs security definer for serivce_role
+-- needs security definer for service_role
 CREATE FUNCTION private.check_export_kind()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -948,6 +960,10 @@ CREATE POLICY "Members can read part exports" ON public.part_exports
     SELECT
       private.is_member()));
 
+-- storage survives prod db resets so the create policy below could fail
+-- drop first and recreate to ensure policy is in line with current migration
+DROP POLICY IF EXISTS "Members can read part files" ON storage.objects;
+
 CREATE POLICY "Members can read part files" ON storage.objects
   FOR SELECT TO authenticated
   USING (bucket_id = 'part-files'
@@ -984,11 +1000,16 @@ CREATE POLICY "Members can update parts" ON public.parts
       private.is_member()));
 
 -- buckets
--- private bucket for exported part files
+-- creates private bucket for exported part files
 -- webhook uploads with admin client
 -- members can only read
+-- on conflict updates bucket during db resets
 INSERT INTO storage.buckets(id, name, public, file_size_limit)
-  VALUES ('part-files', 'part-files', FALSE, 20 * 1024 * 1024);
+  VALUES ('part-files', 'part-files', FALSE, 20 * 1024 * 1024)
+ON CONFLICT (id)
+  DO UPDATE SET
+    public = excluded.public,
+    file_size_limit = excluded.file_size_limit;
 
 -- reference data
 INSERT INTO public.materials(code, label)
