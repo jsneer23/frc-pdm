@@ -9,10 +9,10 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
-import type { SelectionType } from "../constants";
-import type { OnshapeSelection } from "../onshape/useOnshapeSelection";
-import { StepCard } from "./StepCard";
-import { StepHeader } from "./StepHeader";
+import { StepCard } from "../../../components/layout/StepCard";
+import { StepHeader } from "../../../components/layout/StepHeader";
+import type { OnshapeSelection } from "../../onshape/useOnshapeSelection";
+import type { SelectionType } from "../api";
 
 const SELECTION_TEXT = {
 	face: {

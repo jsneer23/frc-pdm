@@ -1,5 +1,5 @@
-import { StepCard } from "./StepCard";
-import { StepHeader } from "./StepHeader";
+import { StepCard } from "../../../components/layout/StepCard";
+import { StepHeader } from "../../../components/layout/StepHeader";
 
 type PartDetailsCardProps = {
 	step?: number;

@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { supabase } from "./supabase";
+import { supabase } from "../../lib/supabase";
 
 async function fetchMachines(signal: AbortSignal) {
 	const { data, error } = await supabase

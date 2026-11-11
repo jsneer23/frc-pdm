@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AuthGate } from "@/features/cards/AuthGateCard";
+import { AuthGate } from "@/features/auth/AuthGate";
 import {
 	onshapeMode,
 	parentOriginForDisplay,
 } from "@/features/onshape/onshapeClient";
-import { PartRequestPage } from "../features/PartRequestPage";
+import { PartRequestPage } from "@/features/part-request/PartRequestPage";
 
 export const Route = createFileRoute("/onshape")({
 	component: OnshapePanel,

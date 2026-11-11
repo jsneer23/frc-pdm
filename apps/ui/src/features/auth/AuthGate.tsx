@@ -1,7 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { LoginForm } from "../forms/LoginForm";
+import { LoginForm } from "./LoginForm";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
 	// if session is undefined still checking, if null then signed out

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { EntityType, SelectionType } from "../constants";
-
+import type { EntityType, SelectionType } from "../part-request/api";
 import { onOnshapeMessage, onshapeMode, postToOnshape } from "./onshapeClient";
 
 export type OnshapeSelection = {

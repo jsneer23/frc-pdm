@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
-import { BrandHeader } from "./cards/BrandHeader";
-import { PART_TYPES, type PartTypeId } from "./constants";
+import { BrandHeader } from "../../components/layout/BrandHeader";
 import { SheetForm } from "./forms/SheetForm";
+import { PART_TYPES, type PartTypeId } from "./partTypes";
 
 const PART_TYPE_IDS = Object.keys(PART_TYPES) as PartTypeId[];
 

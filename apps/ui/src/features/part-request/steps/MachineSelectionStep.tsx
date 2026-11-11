@@ -8,8 +8,8 @@ import {
 	FieldTitle,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { StepCard } from "./StepCard";
-import { StepHeader } from "./StepHeader";
+import { StepCard } from "../../../components/layout/StepCard";
+import { StepHeader } from "../../../components/layout/StepHeader";
 
 type MachineOption<T extends string> = {
 	value: T;

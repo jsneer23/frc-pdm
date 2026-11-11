@@ -13,8 +13,8 @@ import {
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { supabase } from "@/lib/supabase";
-import { BrandHeader } from "../cards/BrandHeader";
-import { TextField } from "../fields/TextField";
+import { BrandHeader } from "../../components/layout/BrandHeader";
+import { TextField } from "../part-request/fields/TextField";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

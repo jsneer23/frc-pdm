@@ -1,6 +1,3 @@
-export type SelectionType = "face" | "body";
-export type EntityType = "FACE" | "undefined";
-
 type ProcessDef = {
 	label: string;
 	description: string;
@@ -31,24 +28,3 @@ export const PART_TYPES = {
 } as const satisfies Record<string, ProcessDef>;
 
 export type PartTypeId = keyof typeof PART_TYPES;
-
-export type PartRequest = {
-	onshape: {
-		documentId: string;
-		workspaceId: string;
-		elementId: string;
-		kind: string;
-		selectionId: string;
-		microversionId: string;
-		occurrencePath: string;
-	};
-	part: {
-		requestId: string;
-		subsystemId: number;
-		partName: string;
-		machineId: number;
-		stockId: number;
-		quantity: number;
-		cadMassLb: number;
-	};
-};

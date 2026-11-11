@@ -17,24 +17,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { onshapeContext, onshapeMode } from "@/features/onshape/onshapeClient";
+import { useOnshapeSelection } from "@/features/onshape/useOnshapeSelection";
 import {
 	type MachineRow,
 	machinesQueryOptions,
 	type RobotRow,
 	robotsQueryOptions,
-} from "@/lib/queries";
+} from "@/features/reference-data/queries";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { MachineSelectionCard } from "../cards/MachineSelectionCard";
-import { OnshapeSelectionCard } from "../cards/OnshapeSelectionCard";
-import { PartDetailsCard } from "../cards/PartDetailsCard";
-import { PART_TYPES, type PartRequest } from "../constants";
+import type { PartRequest } from "../api";
 import { QuantityField } from "../fields/QuantityField";
 import { TextField } from "../fields/TextField";
 import { ThicknessField } from "../fields/ThicknessField";
 import { WeightField } from "../fields/WeightField";
-import { onshapeContext, onshapeMode } from "../onshape/onshapeClient";
-import { useOnshapeSelection } from "../onshape/useOnshapeSelection";
+import { PART_TYPES } from "../partTypes";
+import { MachineSelectionCard } from "../steps/MachineSelectionStep";
+import { PartDetailsCard } from "../steps/PartDetailsStep";
+import { OnshapeSelectionCard } from "../steps/PartSelectionStep";
 
 type FormErrors = Partial<
 	Record<
