@@ -26,7 +26,7 @@ type RequiredKey = (typeof REQUIRED)[number];
 type RawQueueRow = Tables<"parts_queue">;
 
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
-type QueuePart = Prettify<
+export type QueuePart = Prettify<
 	Omit<RawQueueRow, RequiredKey> & {
 		[K in RequiredKey]: NonNullable<RawQueueRow[K]>;
 	}
