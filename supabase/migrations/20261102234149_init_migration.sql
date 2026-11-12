@@ -179,9 +179,11 @@ CREATE TABLE public.parts(
   stock_id bigint NOT NULL REFERENCES public.stocks(id) ON DELETE RESTRICT,
   machine_id bigint NOT NULL REFERENCES public.machines(id) ON DELETE RESTRICT,
   qty integer NOT NULL DEFAULT 1 CHECK (qty BETWEEN 1 AND 99),
+  qty_made integer NOT NULL DEFAULT 0,
   status part_status NOT NULL DEFAULT 'ready',
   exporter_id bigint NOT NULL DEFAULT 0 REFERENCES public.members(id) ON DELETE RESTRICT,
   manufacturer_id bigint REFERENCES public.members(id) ON DELETE RESTRICT,
+  status_changed_by_id bigint REFERENCES public.members(id) ON DELETE RESTRICT,
   completer_id bigint REFERENCES public.members(id) ON DELETE RESTRICT,
   cad_mass_g numeric(8, 1) CHECK (cad_mass_g > 0 AND cad_mass_g <= 22679.6),
   actual_mass_g numeric(8, 1) CHECK (actual_mass_g > 0),
@@ -190,8 +192,13 @@ CREATE TABLE public.parts(
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (subsystem_id, sequence_number),
-  CHECK (status <> 'completed' OR (completer_id IS NOT NULL AND actual_mass_g IS NOT NULL)),
-  CHECK (supersedes_part_id <> id)
+  CONSTRAINT parts_completed_requires_completer CHECK (status <> 'completed' OR completer_id IS NOT NULL),
+  CONSTRAINT parts_completed_requires_mass CHECK (status <> 'completed' OR actual_mass_g IS NOT NULL),
+  CONSTRAINT parts_completed_requires_full_count CHECK (status <> 'completed' OR qty_made = qty),
+  CONSTRAINT parts_completer_only_when_completed CHECK (status = 'completed' OR completer_id IS NULL),
+  CONSTRAINT parts_status_changed_by_transient CHECK (status_changed_by_id IS NULL),
+  CHECK (supersedes_part_id <> id),
+  CHECK (qty_made BETWEEN 0 AND qty)
 );
 
 ALTER TABLE public.parts ENABLE ROW LEVEL SECURITY;
@@ -199,6 +206,8 @@ ALTER TABLE public.parts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.parts FROM anon, authenticated;
 
 GRANT SELECT, INSERT, DELETE ON public.parts TO authenticated;
+
+GRANT UPDATE (name, qty, qty_made, status, manufacturer_id, completer_id, status_changed_by_id, actual_mass_g, cad_mass_g) ON public.parts TO authenticated;
 
 -- notice this doesn't let admins edit part numbers since they are also authenticated
 GRANT UPDATE (name, qty, status, manufacturer_id, completer_id, actual_mass_g, cad_mass_g) ON public.parts TO authenticated;
@@ -500,12 +509,7 @@ CREATE FUNCTION private.record_status_event()
   AS $$
 BEGIN
   INSERT INTO public.part_status_events(part_id, status, member_id)
-    VALUES(NEW.id, NEW.status, CASE NEW.status
-      WHEN 'in_progress' THEN
-        NEW.manufacturer_id
-      WHEN 'completed' THEN
-        NEW.completer_id
-      END);
+    VALUES(NEW.id, NEW.status, NEW.exporter_id);
   RETURN NULL;
 END;
 $$;
@@ -517,15 +521,35 @@ CREATE TRIGGER record_status_on_insert
   FOR EACH ROW
   EXECUTE FUNCTION private.record_status_event();
 
--- AFTER UPDATE OF status doesn't look at if the requested
--- change actually resulted in anything so we have to verify
--- with the WHEN ... IS DISTINCT FROM ... line before
--- writing to status update
-CREATE TRIGGER record_status_on_update
-  AFTER UPDATE OF status ON public.parts
+-- writes the status event for a status change, with the member the form
+-- picked, then empties the column so it never holds a stale name.
+-- before (not after) so it can still change NEW; security definer because
+-- members cannot insert into part_status_events
+CREATE FUNCTION private.record_status_change()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = ''
+  AS $$
+BEGIN
+  IF NEW.status_changed_by_id IS NULL THEN
+    RAISE EXCEPTION 'Pick who is changing the status.'
+      USING errcode = 'P5507';
+  END IF;
+  INSERT INTO public.part_status_events(part_id, status, member_id)
+    VALUES(NEW.id, NEW.status, NEW.status_changed_by_id);
+  NEW.status_changed_by_id := NULL;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.record_status_change() FROM public, anon, authenticated;
+
+CREATE TRIGGER record_status_change
+  BEFORE UPDATE OF status ON public.parts
   FOR EACH ROW
   WHEN(OLD.status IS DISTINCT FROM NEW.status)
-  EXECUTE FUNCTION private.record_status_event();
+  EXECUTE FUNCTION private.record_status_change();
 
 -- set completed_at when status is done or failed and reset
 -- when exporting (i.e. a retry)

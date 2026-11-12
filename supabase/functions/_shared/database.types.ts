@@ -145,14 +145,14 @@ isOneToOne: false
                   ]
                 },"parts": {
                   Row: {
-                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string,"deprecated_at": string | null,"exporter_id": number,"id": number,"machine_id": number,"manufacturer_id": number | null,"name": string,"qty": number,"request_id": string | null,"sequence_number": number,"status": Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id": number | null,"updated_at": string
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string,"deprecated_at": string | null,"exporter_id": number,"id": number,"machine_id": number,"manufacturer_id": number | null,"name": string,"qty": number,"qty_made": number,"request_id": string | null,"sequence_number": number,"status": Database["public"]['Enums']["part_status"],"status_changed_by_id": number | null,"stock_id": number,"subsystem_id": number,"supersedes_part_id": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id": number,"manufacturer_id"?: number | null,"name": string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id": number,"subsystem_id": number,"supersedes_part_id"?: number | null,"updated_at"?: string
+                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id": number,"manufacturer_id"?: number | null,"name": string,"qty"?: number,"qty_made"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"status_changed_by_id"?: number | null,"stock_id": number,"subsystem_id": number,"supersedes_part_id"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id"?: number,"manufacturer_id"?: number | null,"name"?: string,"qty"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"stock_id"?: number,"subsystem_id"?: number,"supersedes_part_id"?: number | null,"updated_at"?: string
+                    "actual_mass_g"?: number | null,"cad_mass_g"?: number | null,"completer_id"?: number | null,"created_at"?: string,"deprecated_at"?: string | null,"exporter_id"?: number,"id"?: never,"machine_id"?: number,"manufacturer_id"?: number | null,"name"?: string,"qty"?: number,"qty_made"?: number,"request_id"?: string | null,"sequence_number"?: number,"status"?: Database["public"]['Enums']["part_status"],"status_changed_by_id"?: number | null,"stock_id"?: number,"subsystem_id"?: number,"supersedes_part_id"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -176,6 +176,12 @@ isOneToOne: false
     },{
       foreignKeyName: "parts_manufacturer_id_fkey"
       columns: ["manufacturer_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_status_changed_by_id_fkey"
+      columns: ["status_changed_by_id"]
 isOneToOne: false
       referencedRelation: "members"
       referencedColumns: ["id"]
@@ -270,7 +276,7 @@ isOneToOne: false
           Views: {
             "parts_queue": {
                   Row: {
-                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer": string | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"export_failure_reason": string | null,"export_file_path": string | null,"export_status": Database["public"]['Enums']["export_status"] | null,"exporter": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"machine_label": string | null,"manufacturer": string | null,"manufacturer_id": number | null,"material_label": string | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"robot_code": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem": string | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"thickness_in": number | null,"updated_at": string | null
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer": string | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"export_failure_reason": string | null,"export_file_path": string | null,"export_status": Database["public"]['Enums']["export_status"] | null,"exporter": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"machine_label": string | null,"manufacturer": string | null,"manufacturer_id": number | null,"material_label": string | null,"name": string | null,"part_number": string | null,"qty": number | null,"qty_made": number | null,"request_id": string | null,"robot_code": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"status_changed_by_id": number | null,"stock_id": number | null,"subsystem": string | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"thickness_in": number | null,"updated_at": string | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -295,6 +301,12 @@ isOneToOne: false
     },{
       foreignKeyName: "parts_manufacturer_id_fkey"
       columns: ["manufacturer_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_status_changed_by_id_fkey"
+      columns: ["status_changed_by_id"]
 isOneToOne: false
       referencedRelation: "members"
       referencedColumns: ["id"]
@@ -332,7 +344,7 @@ isOneToOne: true
                   ]
                 },"parts_with_number": {
                   Row: {
-                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"manufacturer_id": number | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"updated_at": string | null
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"manufacturer_id": number | null,"name": string | null,"part_number": string | null,"qty": number | null,"qty_made": number | null,"request_id": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"status_changed_by_id": number | null,"stock_id": number | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"updated_at": string | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -357,6 +369,12 @@ isOneToOne: false
     },{
       foreignKeyName: "parts_manufacturer_id_fkey"
       columns: ["manufacturer_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_status_changed_by_id_fkey"
+      columns: ["status_changed_by_id"]
 isOneToOne: false
       referencedRelation: "members"
       referencedColumns: ["id"]

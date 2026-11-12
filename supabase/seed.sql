@@ -37,8 +37,7 @@ INSERT INTO public.robots(code, name, season, kind)
 -- completer pickers but cannot sign in (the shared shop laptop case)
 INSERT INTO public.members(name, email)
 VALUES
-  -- test members
-('Jeremy', 'jeremy@example.com'),
+  ('Jeremy', 'jeremy@example.com'),
 ('Jia', 'jia@example.com'),
 ('Beverly', 'beverly@example.com');
 
@@ -50,7 +49,9 @@ VALUES
 SELECT
   set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111"}', FALSE);
 
--- one row per part, in the order part numbers should be assigned. final
+-- one row per part, in the order part numbers should be assigned. made is
+-- qty_made: partial for in-progress parts, the full qty for completed ones
+-- (the completed check requires qty_made = qty), 0 otherwise. final
 -- status, people, and export state are applied after the insert so the status
 -- history trigger records a realistic sequence of events.
 -- cad_lb is converted to grams the same way the onshape function does.
@@ -64,6 +65,7 @@ CREATE TEMPORARY TABLE seed_parts(
   material text NOT NULL,
   thickness_in numeric,
   qty integer NOT NULL,
+  made integer NOT NULL DEFAULT 0,
   cad_lb numeric NOT NULL,
   final_status part_status NOT NULL,
   manufacturer text,
@@ -74,28 +76,28 @@ CREATE TEMPORARY TABLE seed_parts(
   deprecated boolean NOT NULL DEFAULT FALSE
 );
 
-INSERT INTO seed_parts(name, subsystem, machine, material, thickness_in, qty, cad_lb, final_status, manufacturer, completer, actual_g, file_state, failure_reason, deprecated)
+INSERT INTO seed_parts(name, subsystem, machine, material, thickness_in, qty, made, cad_lb, final_status, manufacturer, completer, actual_g, file_state, failure_reason, deprecated)
 VALUES
   -- chassis
-('Bellypan', 'CHS', 'router', 'polycarbonate', 0.118, 1, 1.9, 'ready', NULL, NULL, NULL, 'done', NULL, FALSE),
-('Front bumper bracket', 'CHS', 'router', 'al6061', 0.125, 4, 0.21, 'in_progress', 'jia@example.com', NULL, NULL, 'done', NULL, FALSE),
-('Corner gusset', 'CHS', 'router', 'al6061', 0.1875, 8, 0.06, 'completed', 'jeremy@example.com', 'jeremy@example.com', 28.4, 'done', NULL, FALSE),
-('Frame rail long', 'CHS', 'saw', 'tube_2x1_punched', 0.0625, 2, 1.35, 'completed', 'beverly@example.com', 'jia@example.com', 640.0, NULL, NULL, FALSE),
-('Frame rail short', 'CHS', 'saw', 'tube_2x1_punched', 0.0625, 2, 0.9, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
+('Bellypan', 'CHS', 'router', 'polycarbonate', 0.118, 1, 0, 1.9, 'ready', NULL, NULL, NULL, 'done', NULL, FALSE),
+('Front bumper bracket', 'CHS', 'router', 'al6061', 0.125, 4, 2, 0.21, 'in_progress', 'jeremy@example.com', NULL, NULL, 'done', NULL, FALSE),
+('Corner gusset', 'CHS', 'router', 'al6061', 0.1875, 8, 8, 0.06, 'completed', 'jeremy@example.com', 'beverly@example.com', 28.4, 'done', NULL, FALSE),
+('Frame rail long', 'CHS', 'saw', 'tube_2x1_punched', 0.0625, 2, 2, 1.35, 'completed', 'jia@example.com', 'jia@example.com', 640.0, NULL, NULL, FALSE),
+('Frame rail short', 'CHS', 'saw', 'tube_2x1_punched', 0.0625, 2, 0, 0.9, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
   -- pivot
-('Pivot plate', 'PIV', 'router', 'al6061', 0.25, 2, 1.1, 'in_progress', 'beverly@example.com', NULL, NULL, 'done', NULL, FALSE),
-('Pivot spacer', 'PIV', 'printer', 'pla', NULL, 6, 0.02, 'ready', NULL, NULL, NULL, 'exporting', NULL, FALSE),
-('Pivot shaft', 'PIV', 'lathe', 'hex_0500_159', NULL, 1, 0.45, 'waiting_on_order', NULL, NULL, NULL, NULL, NULL, FALSE),
-('Pivot hardstop', 'PIV', 'printer', 'tpu', NULL, 2, 0.03, 'ready', NULL, NULL, NULL, 'failed', 'Onshape could not translate the part.', FALSE),
+('Pivot plate', 'PIV', 'router', 'al6061', 0.25, 2, 1, 1.1, 'in_progress', 'beverly@example.com', NULL, NULL, 'done', NULL, FALSE),
+('Pivot spacer', 'PIV', 'printer', 'pla', NULL, 6, 0, 0.02, 'ready', NULL, NULL, NULL, 'exporting', NULL, FALSE),
+('Pivot shaft', 'PIV', 'lathe', 'hex_0500_159', NULL, 1, 0, 0.45, 'waiting_on_order', NULL, NULL, NULL, NULL, NULL, FALSE),
+('Pivot hardstop', 'PIV', 'printer', 'tpu', NULL, 2, 0, 0.03, 'ready', NULL, NULL, NULL, 'failed', 'Onshape could not translate the part.', FALSE),
   -- elevator: the old carriage plate comes first so it gets the lower number
-('Carriage plate v1', 'ELV', 'router', 'al6061', 0.1875, 1, 1.7, 'ready', NULL, NULL, NULL, 'done', NULL, TRUE),
-('Carriage plate', 'ELV', 'router', 'al6061', 0.1875, 1, 1.6, 'ready', NULL, NULL, NULL, 'done', NULL, FALSE),
-('Stage tube', 'ELV', 'saw', 'maxtube_2x1', 0.04, 2, 0.75, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
-('Cable guide', 'ELV', 'printer', 'petg', NULL, 4, 0.04, 'completed', 'jia@example.com', 'beverly@example.com', 17.9, 'done', NULL, FALSE),
+('Carriage plate v1', 'ELV', 'router', 'al6061', 0.1875, 1, 0, 1.7, 'ready', NULL, NULL, NULL, 'done', NULL, TRUE),
+('Carriage plate', 'ELV', 'router', 'al6061', 0.1875, 1, 0, 1.6, 'ready', NULL, NULL, NULL, 'done', NULL, FALSE),
+('Stage tube', 'ELV', 'saw', 'maxtube_2x1', 0.04, 2, 0, 0.75, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
+('Cable guide', 'ELV', 'printer', 'petg', NULL, 4, 4, 0.04, 'completed', 'jia@example.com', 'jeremy@example.com', 17.9, 'done', NULL, FALSE),
   -- intake
-('Intake side plate', 'ITK', 'co2_laser', 'polycarbonate', 0.236, 2, 0.35, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
-('Roller hub', 'ITK', 'printer', 'nylon', NULL, 6, 0.05, 'in_progress', 'jeremy@example.com', NULL, NULL, 'done', NULL, FALSE),
-('Intake bumper', 'ITK', 'router', 'srpp', 0.25, 1, 0.4, 'waiting_on_order', NULL, NULL, NULL, 'done', NULL, FALSE);
+('Intake side plate', 'ITK', 'co2_laser', 'polycarbonate', 0.236, 2, 0, 0.35, 'ready', NULL, NULL, NULL, NULL, NULL, FALSE),
+('Roller hub', 'ITK', 'printer', 'nylon', NULL, 6, 3, 0.05, 'in_progress', 'jeremy@example.com', NULL, NULL, 'done', NULL, FALSE),
+('Intake bumper', 'ITK', 'router', 'srpp', 0.25, 1, 0, 0.4, 'waiting_on_order', NULL, NULL, NULL, 'done', NULL, FALSE);
 
 -- insert every part as ready (the column default). the triggers assign the
 -- part number, the exporter, check the machine can cut the material, and
@@ -148,15 +150,19 @@ END
 $$;
 
 -- status changes, in the order they happen in the shop. each real change adds
--- one part_status_events row (record_status_on_update), so a completed part
+-- one part_status_events row (record_status_change), naming the member in
+-- status_changed_by_id, which every status change must send; a completed part
 -- ends with ready -> in_progress -> completed.
 -- parts are matched by name, which is unique in this file.
--- 1. started (includes parts that will be completed next)
+-- 1. started, with pieces made so far (includes parts that will be
+-- completed next: they reach their full count here, then get weighed)
 UPDATE
   public.parts p
 SET
   status = 'in_progress',
-  manufacturer_id = m.id
+  manufacturer_id = m.id,
+  qty_made = sp.made,
+  status_changed_by_id = m.id
 FROM
   seed_parts sp
   JOIN public.members m ON m.email = sp.manufacturer
@@ -164,14 +170,15 @@ WHERE
   p.name = sp.name
   AND sp.final_status IN ('in_progress', 'completed');
 
--- 2. completed: the check on parts requires completer_id and actual_mass_g
--- in the same update as the status
+-- 2. completed: the checks on parts require completer_id, actual_mass_g and
+-- qty_made = qty when status becomes completed; qty_made was set in step 1
 UPDATE
   public.parts p
 SET
   status = 'completed',
   completer_id = m.id,
-  actual_mass_g = sp.actual_g
+  actual_mass_g = sp.actual_g,
+  status_changed_by_id = m.id
 FROM
   seed_parts sp
   JOIN public.members m ON m.email = sp.completer
@@ -179,11 +186,19 @@ WHERE
   p.name = sp.name
   AND sp.final_status = 'completed';
 
--- 3. stock not in the shop yet
+-- 3. stock not in the shop yet (the plan has no person for this; use the
+-- test member)
 UPDATE
   public.parts p
 SET
-  status = 'waiting_on_order'
+  status = 'waiting_on_order',
+  status_changed_by_id =(
+    SELECT
+      id
+    FROM
+      public.members
+    WHERE
+      email = 'test@example.com')
 FROM
   seed_parts sp
 WHERE
@@ -201,6 +216,28 @@ FROM
 WHERE
   p.name = sp.name
   AND sp.deprecated;
+
+-- an update whose join finds no member changes zero rows without an error.
+-- fail loudly if any part didn't end up in its planned status or count.
+DO $$
+DECLARE
+  wrong text;
+BEGIN
+  SELECT
+    string_agg(sp.name || ' (is ' || p.status::text || ' with ' || p.qty_made || ' made, planned ' || sp.final_status::text || ' with ' || sp.made || ')', ', ')
+  INTO
+    wrong
+  FROM
+    seed_parts sp
+    JOIN public.parts p ON p.name = sp.name
+  WHERE
+    p.status <> sp.final_status
+    OR p.qty_made <> sp.made;
+  IF wrong IS NOT NULL THEN
+    RAISE EXCEPTION 'seed parts not as planned (check manufacturer and completer emails): %', wrong;
+  END IF;
+END
+$$;
 
 -- export rows, one per part. the onshape function writes these as
 -- service_role; the seed can because it runs as the owner.
