@@ -216,6 +216,9 @@ CREATE INDEX parts_machine_id_idx ON public.parts(machine_id);
 CREATE INDEX parts_stock_id_idx ON public.parts(stock_id);
 
 -- parts_with_number view of parts
+-- security_invoker ensures the view is computed with permission of the caller, not postgres
+-- notice that queue_parts depends on this view so if this is edited and dropped and recreated
+-- you must do the same to queue_parts
 CREATE VIEW public.parts_with_number WITH ( security_invoker = TRUE
 ) AS
 SELECT
@@ -232,6 +235,7 @@ ALTER VIEW public.parts_with_number OWNER TO postgres;
 
 REVOKE ALL ON public.parts_with_number FROM anon, authenticated;
 
+-- service role is for the onshape webhook to use
 GRANT SELECT ON public.parts_with_number TO service_role, authenticated;
 
 -- part_exports
@@ -265,6 +269,40 @@ GRANT SELECT, DELETE ON public.part_exports TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.part_exports TO service_role;
 
 CREATE INDEX part_exports_onshape_idx ON public.part_exports(document_id, element_id, selection_id);
+
+-- part queue view used for querying parts
+CREATE VIEW public.parts_queue WITH ( security_invoker = TRUE
+) AS
+SELECT
+  p.*,
+  r.code AS robot_code,
+  s.name AS subsystem,
+  stocks.thickness_in AS thickness_in,
+  materials.label AS material_label,
+  machines.label AS machine_label,
+  part_exports.status AS export_status,
+  part_exports.failure_reason AS export_failure_reason,
+  part_exports.file_path AS export_file_path,
+  exporter.name AS exporter,
+  manufacturer.name AS manufacturer,
+  completer.name AS completer
+FROM
+  public.parts_with_number p
+  JOIN public.subsystems s ON s.id = p.subsystem_id
+  JOIN public.robots r ON r.id = s.robot_id
+  JOIN public.stocks ON stocks.id = p.stock_id
+  JOIN public.materials ON materials.id = stocks.material_id
+  JOIN public.machines ON machines.id = p.machine_id
+  LEFT JOIN public.members exporter ON exporter.id = p.exporter_id
+  LEFT JOIN public.members manufacturer ON manufacturer.id = p.manufacturer_id
+  LEFT JOIN public.members completer ON completer.id = p.completer_id
+  LEFT JOIN public.part_exports ON part_exports.part_id = p.id;
+
+ALTER VIEW public.parts_queue OWNER TO postgres;
+
+REVOKE ALL ON public.parts_queue FROM anon, authenticated;
+
+GRANT SELECT ON public.parts_queue TO authenticated;
 
 -- part_status_events
 CREATE TABLE public.part_status_events(
