@@ -95,6 +95,12 @@ isOneToOne: true
       foreignKeyName: "part_exports_part_id_fkey"
       columns: ["part_id"]
 isOneToOne: true
+      referencedRelation: "parts_queue"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "part_exports_part_id_fkey"
+      columns: ["part_id"]
+isOneToOne: true
       referencedRelation: "parts_with_number"
       referencedColumns: ["id"]
     }
@@ -122,6 +128,12 @@ isOneToOne: false
       columns: ["part_id"]
 isOneToOne: false
       referencedRelation: "parts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "part_status_events_part_id_fkey"
+      columns: ["part_id"]
+isOneToOne: false
+      referencedRelation: "parts_queue"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "part_status_events_part_id_fkey"
@@ -189,6 +201,12 @@ isOneToOne: true
       foreignKeyName: "parts_supersedes_part_id_fkey"
       columns: ["supersedes_part_id"]
 isOneToOne: true
+      referencedRelation: "parts_queue"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_supersedes_part_id_fkey"
+      columns: ["supersedes_part_id"]
+isOneToOne: true
       referencedRelation: "parts_with_number"
       referencedColumns: ["id"]
     }
@@ -250,7 +268,69 @@ isOneToOne: false
                 }
           }
           Views: {
-            "parts_with_number": {
+            "parts_queue": {
+                  Row: {
+                    "actual_mass_g": number | null,"cad_mass_g": number | null,"completer": string | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"export_failure_reason": string | null,"export_file_path": string | null,"export_status": Database["public"]['Enums']["export_status"] | null,"exporter": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"machine_label": string | null,"manufacturer": string | null,"manufacturer_id": number | null,"material_label": string | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"robot_code": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem": string | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"thickness_in": number | null,"updated_at": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "parts_completer_id_fkey"
+      columns: ["completer_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_exporter_id_fkey"
+      columns: ["exporter_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_machine_id_fkey"
+      columns: ["machine_id"]
+isOneToOne: false
+      referencedRelation: "machines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_manufacturer_id_fkey"
+      columns: ["manufacturer_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
+      referencedRelation: "stocks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_subsystem_id_fkey"
+      columns: ["subsystem_id"]
+isOneToOne: false
+      referencedRelation: "subsystems"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_supersedes_part_id_fkey"
+      columns: ["supersedes_part_id"]
+isOneToOne: true
+      referencedRelation: "parts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_supersedes_part_id_fkey"
+      columns: ["supersedes_part_id"]
+isOneToOne: true
+      referencedRelation: "parts_queue"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_supersedes_part_id_fkey"
+      columns: ["supersedes_part_id"]
+isOneToOne: true
+      referencedRelation: "parts_with_number"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parts_with_number": {
                   Row: {
                     "actual_mass_g": number | null,"cad_mass_g": number | null,"completer_id": number | null,"created_at": string | null,"deprecated_at": string | null,"exporter_id": number | null,"id": number | null,"machine_id": number | null,"manufacturer_id": number | null,"name": string | null,"part_number": string | null,"qty": number | null,"request_id": string | null,"sequence_number": number | null,"status": Database["public"]['Enums']["part_status"] | null,"stock_id": number | null,"subsystem_id": number | null,"supersedes_part_id": number | null,"updated_at": string | null
                   }
@@ -297,6 +377,12 @@ isOneToOne: false
       columns: ["supersedes_part_id"]
 isOneToOne: true
       referencedRelation: "parts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_supersedes_part_id_fkey"
+      columns: ["supersedes_part_id"]
+isOneToOne: true
+      referencedRelation: "parts_queue"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "parts_supersedes_part_id_fkey"
