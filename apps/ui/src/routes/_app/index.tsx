@@ -62,7 +62,7 @@ function Home() {
 	const visible = parts.data ? filterParts(parts.data, search) : [];
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-1 flex-col gap-4">
 			<FilterBar
 				robots={robots.data}
 				robotCode={robotCode}
@@ -78,7 +78,7 @@ function Home() {
 					Couldn't load parts: {parts.error.message}
 				</p>
 			) : visible.length === 0 ? (
-				<div className="flex flex-col items-start gap-2">
+				<div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
 					<p className="text-muted-foreground">No parts match these filters.</p>
 					<Button
 						variant="outline"
