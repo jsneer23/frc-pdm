@@ -197,8 +197,8 @@ CREATE TABLE public.parts(
   CONSTRAINT parts_completed_requires_full_count CHECK (status <> 'completed' OR qty_made = qty),
   CONSTRAINT parts_completer_only_when_completed CHECK (status = 'completed' OR completer_id IS NULL),
   CONSTRAINT parts_status_changed_by_transient CHECK (status_changed_by_id IS NULL),
-  CHECK (supersedes_part_id <> id),
-  CHECK (qty_made BETWEEN 0 AND qty)
+  CONSTRAINT parts_qty_made_range CHECK (qty_made BETWEEN 0 AND qty),
+  CHECK (supersedes_part_id <> id)
 );
 
 ALTER TABLE public.parts ENABLE ROW LEVEL SECURITY;
@@ -208,9 +208,6 @@ REVOKE ALL ON public.parts FROM anon, authenticated;
 GRANT SELECT, INSERT, DELETE ON public.parts TO authenticated;
 
 GRANT UPDATE (name, qty, qty_made, status, manufacturer_id, completer_id, status_changed_by_id, actual_mass_g, cad_mass_g) ON public.parts TO authenticated;
-
--- notice this doesn't let admins edit part numbers since they are also authenticated
-GRANT UPDATE (name, qty, status, manufacturer_id, completer_id, actual_mass_g, cad_mass_g) ON public.parts TO authenticated;
 
 GRANT SELECT ON public.parts TO service_role;
 
@@ -279,40 +276,6 @@ GRANT SELECT, INSERT, UPDATE ON public.part_exports TO service_role;
 
 CREATE INDEX part_exports_onshape_idx ON public.part_exports(document_id, element_id, selection_id);
 
--- part queue view used for querying parts
-CREATE VIEW public.parts_queue WITH ( security_invoker = TRUE
-) AS
-SELECT
-  p.*,
-  r.code AS robot_code,
-  s.name AS subsystem,
-  stocks.thickness_in AS thickness_in,
-  materials.label AS material_label,
-  machines.label AS machine_label,
-  part_exports.status AS export_status,
-  part_exports.failure_reason AS export_failure_reason,
-  part_exports.file_path AS export_file_path,
-  exporter.name AS exporter,
-  manufacturer.name AS manufacturer,
-  completer.name AS completer
-FROM
-  public.parts_with_number p
-  JOIN public.subsystems s ON s.id = p.subsystem_id
-  JOIN public.robots r ON r.id = s.robot_id
-  JOIN public.stocks ON stocks.id = p.stock_id
-  JOIN public.materials ON materials.id = stocks.material_id
-  JOIN public.machines ON machines.id = p.machine_id
-  LEFT JOIN public.members exporter ON exporter.id = p.exporter_id
-  LEFT JOIN public.members manufacturer ON manufacturer.id = p.manufacturer_id
-  LEFT JOIN public.members completer ON completer.id = p.completer_id
-  LEFT JOIN public.part_exports ON part_exports.part_id = p.id;
-
-ALTER VIEW public.parts_queue OWNER TO postgres;
-
-REVOKE ALL ON public.parts_queue FROM anon, authenticated;
-
-GRANT SELECT ON public.parts_queue TO authenticated;
-
 -- part_status_events
 CREATE TABLE public.part_status_events(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -331,6 +294,58 @@ GRANT SELECT ON public.part_status_events TO authenticated;
 CREATE INDEX part_status_events_member_id_idx ON public.part_status_events(member_id);
 
 CREATE INDEX part_status_events_part_idx ON public.part_status_events(part_id, changed_at);
+
+-- part queue view used for querying parts
+CREATE VIEW public.parts_queue WITH ( security_invoker = TRUE
+) AS
+SELECT
+  p.*,
+  r.code AS robot_code,
+  s.name AS subsystem,
+  stocks.thickness_in AS thickness_in,
+  materials.label AS material_label,
+  machines.label AS machine_label,
+  part_exports.status AS export_status,
+  part_exports.failure_reason AS export_failure_reason,
+  part_exports.file_path AS export_file_path,
+  exporter.name AS exporter,
+  manufacturer.name AS manufacturer,
+  completer.name AS completer,
+  last_event.status AS last_event_status,
+  last_event.changed_at AS last_event_at,
+  last_event.member_name AS last_event_by
+FROM
+  public.parts_with_number p
+  JOIN public.subsystems s ON s.id = p.subsystem_id
+  JOIN public.robots r ON r.id = s.robot_id
+  JOIN public.stocks ON stocks.id = p.stock_id
+  JOIN public.materials ON materials.id = stocks.material_id
+  JOIN public.machines ON machines.id = p.machine_id
+  LEFT JOIN public.members exporter ON exporter.id = p.exporter_id
+  LEFT JOIN public.members manufacturer ON manufacturer.id = p.manufacturer_id
+  LEFT JOIN public.members completer ON completer.id = p.completer_id
+  LEFT JOIN public.part_exports ON part_exports.part_id = p.id
+  LEFT JOIN LATERAL (
+    SELECT
+      ev.status,
+      ev.changed_at,
+      m.name AS member_name
+    FROM
+      public.part_status_events ev
+      LEFT JOIN public.members m ON m.id = ev.member_id
+    WHERE
+      ev.part_id = p.id
+    ORDER BY
+      ev.changed_at DESC,
+      ev.id DESC
+    LIMIT 1
+) AS last_event ON TRUE;
+
+ALTER VIEW public.parts_queue OWNER TO postgres;
+
+REVOKE ALL ON public.parts_queue FROM anon, authenticated;
+
+GRANT SELECT ON public.parts_queue TO authenticated;
 
 -- functions
 -- assign exporter id to the member id of the caller

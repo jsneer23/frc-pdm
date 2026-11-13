@@ -7,6 +7,7 @@ const REQUIRED = [
 	"part_number",
 	"name",
 	"qty",
+	"qty_made",
 	"status",
 	"robot_code",
 	"subsystem",
@@ -48,10 +49,6 @@ async function fetchRobotQueue(robotCode: string, signal: AbortSignal) {
 	return data.map(toQueuePart);
 }
 
-// the [number] grabs the type of a single element of the return type
-// idea is the same as machines[0] but at the type level
-export type RobotPartRow = Awaited<ReturnType<typeof fetchRobotQueue>>[number];
-
 export function partsQueueQueryOptions(robotCode: string) {
 	return queryOptions({
 		queryKey: ["parts-queue", robotCode],
@@ -67,3 +64,23 @@ function toQueuePart(row: RawQueueRow): QueuePart {
 	}
 	return row as QueuePart;
 }
+
+async function fetchMembers(signal: AbortSignal) {
+	const { data, error } = await supabase
+		.from("members")
+		.select("id, name")
+		.order("name")
+		.abortSignal(signal);
+
+	if (error) {
+		throw error;
+	}
+
+	return data;
+}
+
+export const membersQueryOptions = queryOptions({
+	queryKey: ["members"],
+	queryFn: ({ signal }) => fetchMembers(signal),
+	staleTime: 5 * 60 * 1000,
+});

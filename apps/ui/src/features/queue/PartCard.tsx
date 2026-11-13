@@ -1,9 +1,10 @@
-import { Check, Package, RotateCw } from "lucide-react";
+import { Package, RotateCw } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { QueuePart } from "./queries";
+import { ReversePartCard } from "./ReversePartCard";
 
 const STATUS_BADGE: Record<
 	QueuePart["status"],
@@ -31,17 +32,16 @@ export function PartCard({ part }: { part: QueuePart }) {
 	const [flipped, setFlipped] = useState(false);
 	const exportFailed = part.export_status === "failed";
 	const status = STATUS_BADGE[part.status];
-
 	const material =
 		part.thickness_in === null
 			? part.material_label
 			: `${part.material_label} ${part.thickness_in}"`;
 
 	return (
-		<div className="perspective-distant">
+		<div className="min-w-0 perspective-distant">
 			<div
 				className={cn(
-					"grid transition-transform duration-500 transform-3d motion-reduce:transition-none",
+					"grid grid-cols-1 transition-transform duration-500 transform-3d motion-reduce:transition-none",
 					flipped && "rotate-y-180",
 				)}
 			>
@@ -61,7 +61,7 @@ export function PartCard({ part }: { part: QueuePart }) {
 								title={part.export_failure_reason ?? undefined}
 								className="absolute top-2 left-2 border-transparent bg-destructive text-white"
 							>
-								Export Error
+								Onshape export error
 							</Badge>
 						) : (
 							<Badge className={cn("absolute top-2 left-2", status.className)}>
@@ -102,27 +102,15 @@ export function PartCard({ part }: { part: QueuePart }) {
 				{/* back */}
 				<article
 					inert={!flipped}
-					className="col-start-1 row-start-1 flex rotate-y-180 flex-col gap-3 rounded-xl border bg-card p-3 backface-hidden"
+					className="col-start-1 row-start-1 rotate-y-180 rounded-xl border bg-card p-3 backface-hidden"
 				>
-					<div className="flex flex-col gap-1">
-						<p className="text-xs text-muted-foreground">{part.part_number}</p>
-						<h2 className="line-clamp-2 text-lg leading-tight font-semibold">
-							{part.name}
-						</h2>
-					</div>
-
-					<p className="flex-1 text-sm text-muted-foreground">
-						Details and actions go here.
-					</p>
-
-					<Button
-						size="icon-sm"
-						aria-label="Show front"
-						onClick={() => setFlipped(false)}
-						className="mt-auto self-end"
-					>
-						<Check />
-					</Button>
+					<ReversePartCard
+						// a new key whenever the saved status or people change, so the
+						// back's picks start over from what's saved
+						key={`${part.status}-${part.manufacturer_id}-${part.completer_id}`}
+						part={part}
+						onFlip={() => setFlipped(false)}
+					/>
 				</article>
 			</div>
 		</div>
