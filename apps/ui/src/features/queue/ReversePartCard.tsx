@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { partFileUrl } from "./files";
 import { MemberPicker } from "./MemberPicker";
 import { type PartChanges, partErrorMessage, useUpdatePart } from "./mutations";
 import type { QueuePart } from "./queries";
@@ -105,6 +106,7 @@ export function ReversePartCard({ part, onFlip }: ReversePartCardProps) {
 	// its draft on completed parts (in progress, each click saves).
 	const [madeDraft, setMadeDraft] = useState<number | null>(null);
 	const [weightDraft, setWeightDraft] = useState<string | null>(null);
+	const [downloading, setDownloading] = useState(false);
 
 	const busy = updatePart.isPending;
 	const ready = part.status === "ready";
@@ -217,6 +219,23 @@ export function ReversePartCard({ part, onFlip }: ReversePartCardProps) {
 				onError: (error) => toast.error(partErrorMessage(error)),
 			},
 		);
+	}
+
+	const hasFile =
+		part.export_status === "done" && part.export_file_path !== null;
+
+	// asks for a one-minute link when clicked, then hands it to the browser,
+	// which saves the file and stays on this page
+	async function downloadFile() {
+		setDownloading(true);
+		try {
+			window.location.assign(await partFileUrl(part));
+		} catch (error) {
+			console.error("Download failed:", error);
+			toast.error("Couldn't get the file. Try again.");
+		} finally {
+			setDownloading(false);
+		}
 	}
 
 	function clearDrafts() {
@@ -457,8 +476,12 @@ export function ReversePartCard({ part, onFlip }: ReversePartCardProps) {
 					<Button
 						size="icon-sm"
 						variant="outline"
-						aria-label="Download file"
-						disabled
+						aria-label={
+							hasFile ? `Download ${part.part_number}.zip` : "No file yet"
+						}
+						title={hasFile ? "Download file" : "No file yet"}
+						disabled={!hasFile || downloading}
+						onClick={downloadFile}
 					>
 						<Download />
 					</Button>

@@ -5,28 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { QueuePart } from "./queries";
 import { ReversePartCard } from "./ReversePartCard";
-
-const STATUS_BADGE: Record<
-	QueuePart["status"],
-	{ label: string; className: string }
-> = {
-	waiting_on_order: {
-		label: "Waiting on order",
-		className: "border-border bg-muted text-muted-foreground",
-	},
-	ready: {
-		label: "Not started",
-		className: "border-destructive/20 bg-destructive/10 text-destructive",
-	},
-	in_progress: {
-		label: "In progress",
-		className: "border-amber-500/20 bg-amber-500/10 text-amber-600",
-	},
-	completed: {
-		label: "Complete",
-		className: "border-primary/20 bg-primary/10 text-primary",
-	},
-};
+import { STATUS_BADGE } from "./status";
 
 export function PartCard({ part }: { part: QueuePart }) {
 	const [flipped, setFlipped] = useState(false);

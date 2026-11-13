@@ -13,11 +13,14 @@ const REQUIRED = [
 	"subsystem",
 	"machine_label",
 	"material_label",
+	"material_code",
 	"exporter",
 	"created_at",
 	"updated_at",
 	"subsystem_id",
+	"subsystem_code",
 	"machine_id",
+	"machine_code",
 	"stock_id",
 	"exporter_id",
 	"sequence_number",
@@ -82,5 +85,27 @@ async function fetchMembers(signal: AbortSignal) {
 export const membersQueryOptions = queryOptions({
 	queryKey: ["members"],
 	queryFn: ({ signal }) => fetchMembers(signal),
+	staleTime: 5 * 60 * 1000,
+});
+
+async function fetchRobots(signal: AbortSignal) {
+	const { data, error } = await supabase
+		.from("robots")
+		.select("id, code, name")
+		.order("created_at", { ascending: false })
+		.abortSignal(signal);
+
+	if (error) {
+		throw error;
+	}
+
+	return data;
+}
+
+export type Robot = Awaited<ReturnType<typeof fetchRobots>>[number];
+
+export const robotsQueryOptions = queryOptions({
+	queryKey: ["robots"],
+	queryFn: ({ signal }) => fetchRobots(signal),
 	staleTime: 5 * 60 * 1000,
 });
