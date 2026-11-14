@@ -49,10 +49,26 @@ VALUES
 SELECT
   set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111"}', FALSE);
 
+-- the stocks for the two waiting parts are out, so those parts start as
+-- waiting on order (set_status_from_stock). srpp is also on order.
+SELECT
+  public.set_stock(s.id, 'out', m.code = 'srpp',(
+      SELECT
+        id
+      FROM public.members
+      WHERE
+        email = 'test@example.com'))
+FROM
+  public.stocks s
+  JOIN public.materials m ON m.id = s.material_id
+WHERE (m.code = 'srpp'
+  AND s.thickness_in = 0.25)
+  OR m.code = 'hex_0500_159';
+
 -- one row per part, in the order part numbers should be assigned. made is
 -- qty_made: partial for in-progress parts, the full qty for completed ones
--- (the completed check requires qty_made = qty), 0 otherwise. final
--- status, people, and export state are applied after the insert so the status
+-- (the completed check requires qty_made = qty), 0 otherwise. people and
+-- export state are applied after the insert so the status
 -- history trigger records a realistic sequence of events.
 -- cad_lb is converted to grams the same way the onshape function does.
 -- file_state applies to STEP machines only (router, printer); other machines
@@ -99,7 +115,8 @@ VALUES
 ('Roller hub', 'ITK', 'printer', 'nylon', NULL, 6, 3, 0.05, 'in_progress', 'jeremy@example.com', NULL, NULL, 'done', NULL, FALSE),
 ('Intake bumper', 'ITK', 'router', 'srpp', 0.25, 1, 0, 0.4, 'waiting_on_order', NULL, NULL, NULL, 'done', NULL, FALSE);
 
--- insert every part as ready (the column default). the triggers assign the
+-- insert every part as ready (the column default) and trigger assigns waiting
+-- or order if needed material is out of stock. other triggers assign the
 -- part number, the exporter, check the machine can cut the material, and
 -- record the first status event. "is not distinct from" matches null
 -- thicknesses (filament, hex), where "=" would never be true.
@@ -186,26 +203,7 @@ WHERE
   p.name = sp.name
   AND sp.final_status = 'completed';
 
--- 3. stock not in the shop yet (the plan has no person for this; use the
--- test member)
-UPDATE
-  public.parts p
-SET
-  status = 'waiting_on_order',
-  status_changed_by_id =(
-    SELECT
-      id
-    FROM
-      public.members
-    WHERE
-      email = 'test@example.com')
-FROM
-  seed_parts sp
-WHERE
-  p.name = sp.name
-  AND sp.final_status = 'waiting_on_order';
-
--- 4. replaced by a newer part (members cannot set deprecated_at; the seed runs
+-- 3. replaced by a newer part (members cannot set deprecated_at; the seed runs
 -- as the table owner, which RLS and column grants don't limit)
 UPDATE
   public.parts p
@@ -276,7 +274,6 @@ FROM
 
 -- finished exports get the path the webhook would have written:
 -- <export id>/<part number>.zip. the export id only exists after the insert.
--- no file is uploaded, so downloading these fails until T88 adds one.
 UPDATE
   public.part_exports e
 SET

@@ -35,6 +35,19 @@ CREATE TYPE export_status AS enum(
   'failed'
 );
 
+CREATE TYPE stock_status AS enum(
+  'in_stock',
+  'low',
+  'out'
+);
+
+CREATE TYPE material_category AS enum(
+  'plate',
+  'tube',
+  'shaft',
+  'filament'
+);
+
 -- tables
 -- members
 CREATE TABLE public.members(
@@ -111,6 +124,7 @@ CREATE TABLE public.materials(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   code text NOT NULL UNIQUE CHECK (code ~ '^[a-z0-9_]{1,50}$'),
   label text NOT NULL CHECK (char_length(label) BETWEEN 1 AND 100),
+  category material_category NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -125,8 +139,10 @@ CREATE TABLE public.stocks(
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   material_id bigint NOT NULL REFERENCES public.materials(id) ON DELETE RESTRICT,
   thickness_in numeric(7, 5) CHECK (thickness_in > 0),
+  status stock_status NOT NULL DEFAULT 'in_stock',
+  ordered_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE nulls NOT DISTINCT (material_id, thickness_in)
+  UNIQUE NULLS NOT DISTINCT (material_id, thickness_in)
 );
 
 ALTER TABLE public.stocks ENABLE ROW LEVEL SECURITY;
@@ -223,8 +239,8 @@ CREATE INDEX parts_stock_id_idx ON public.parts(stock_id);
 
 -- parts_with_number view of parts
 -- security_invoker ensures the view is computed with permission of the caller, not postgres
--- notice that queue_parts depends on this view so if this is edited and dropped and recreated
--- you must do the same to queue_parts
+-- notice that parts_queue depends on this view so if this is edited and dropped and recreated
+-- you must do the same to parts_queue
 CREATE VIEW public.parts_with_number WITH ( security_invoker = TRUE
 ) AS
 SELECT
@@ -350,6 +366,80 @@ ALTER VIEW public.parts_queue OWNER TO postgres;
 REVOKE ALL ON public.parts_queue FROM anon, authenticated;
 
 GRANT SELECT ON public.parts_queue TO authenticated;
+
+-- stock_status_events
+-- one row per change made through set_stock: what the stock became, who
+-- did it, and how many parts it moved
+CREATE TABLE public.stock_status_events(
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  stock_id bigint NOT NULL REFERENCES public.stocks(id) ON DELETE CASCADE,
+  status stock_status NOT NULL,
+  ordered boolean NOT NULL,
+  parts_moved integer NOT NULL DEFAULT 0 CHECK (parts_moved >= 0),
+  member_id bigint NOT NULL REFERENCES public.members(id) ON DELETE RESTRICT,
+  changed_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.stock_status_events ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.stock_status_events FROM anon, authenticated;
+
+GRANT SELECT ON public.stock_status_events TO authenticated;
+
+CREATE INDEX stock_status_events_stock_idx ON public.stock_status_events(stock_id, changed_at);
+
+CREATE INDEX stock_status_events_member_id_idx ON public.stock_status_events(member_id);
+
+-- stock_inventory view: one row per stock, with its material, how many
+-- active parts (any robot, not deprecated) use it by status, and its latest
+-- change. place after stock_status_events in the init migration.
+-- grouping by st.id and m.id (primary keys) lets the select use any column
+-- of those tables; the lateral columns are grouped too.
+CREATE VIEW public.stock_inventory WITH ( security_invoker = TRUE
+) AS
+SELECT
+  st.id,
+  st.thickness_in,
+  st.status,
+  st.ordered_at,
+  m.code AS material_code,
+  m.label AS material_label,
+  m.category,
+  count(
+    p.id) FILTER (WHERE p.status = 'waiting_on_order') AS parts_waiting,
+  count(p.id) FILTER (WHERE p.status = 'ready') AS parts_ready,
+  count(p.id) FILTER (WHERE p.status = 'in_progress') AS parts_in_progress,
+  last_change.changed_at AS last_change_at,
+  last_change.member_name AS last_change_by
+FROM
+  public.stocks st
+  JOIN public.materials m ON m.id = st.material_id
+  LEFT JOIN public.parts p ON p.stock_id = st.id
+    AND p.deprecated_at IS NULL
+  LEFT JOIN LATERAL (
+    SELECT
+      ev.changed_at,
+      mem.name AS member_name
+    FROM
+      public.stock_status_events ev
+      JOIN public.members mem ON mem.id = ev.member_id
+    WHERE
+      ev.stock_id = st.id
+    ORDER BY
+      ev.changed_at DESC,
+      ev.id DESC
+    LIMIT 1) AS last_change ON TRUE
+GROUP BY
+  st.id,
+  m.id,
+  last_change.changed_at,
+  last_change.member_name;
+
+ALTER VIEW public.stock_inventory OWNER TO postgres;
+
+REVOKE ALL ON public.stock_inventory FROM anon, authenticated;
+
+GRANT SELECT ON public.stock_inventory TO authenticated;
 
 -- functions
 -- assign exporter id to the member id of the caller
@@ -518,9 +608,9 @@ END
 $$;
 
 -- part_status trigger function
--- make database write changes to part_status_events upon every status change
+-- make database write changes to part_status_events upon every insert
 -- needs security definer because members cannot insert into part_status_events
-CREATE FUNCTION private.record_status_event()
+CREATE FUNCTION private.record_status_on_insert()
   RETURNS TRIGGER
   LANGUAGE plpgsql
   SECURITY DEFINER
@@ -533,12 +623,12 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION private.record_status_event() FROM public, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION private.record_status_on_insert() FROM public, anon, authenticated;
 
 CREATE TRIGGER record_status_on_insert
   AFTER INSERT ON public.parts
   FOR EACH ROW
-  EXECUTE FUNCTION private.record_status_event();
+  EXECUTE FUNCTION private.record_status_on_insert();
 
 -- writes the status event for a status change, with the member the form
 -- picked, then empties the column so it never holds a stale name.
@@ -821,6 +911,147 @@ CREATE TRIGGER check_export_kind
   FOR EACH ROW
   EXECUTE FUNCTION private.check_export_kind();
 
+-- changes stock status and updates ordered flag (when needed)
+-- moves parts to/from waiting on order (when needed)
+CREATE FUNCTION public.set_stock(p_stock_id bigint, p_status public.stock_status, p_ordered boolean, p_member_id bigint)
+  RETURNS integer
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = ''
+  AS $$
+DECLARE
+  old_status public.stock_status;
+  moved integer := 0;
+  old_ordered boolean;
+BEGIN
+  IF NOT private.is_member() THEN
+    RAISE EXCEPTION 'Only members can change stock.'
+      USING errcode = '42501';
+  END IF;
+  IF NOT EXISTS (
+    SELECT
+      1
+    FROM
+      public.members
+    WHERE
+      id = p_member_id) THEN
+  RAISE EXCEPTION 'Pick who is changing the stock.'
+    USING errcode = 'P5507';
+END IF;
+  -- lock the stock row so two changes at once run one after the other
+  SELECT
+    status,
+    ordered_at IS NOT NULL
+  INTO
+    old_status,
+    old_ordered
+  FROM
+    public.stocks
+  WHERE
+    id = p_stock_id
+  FOR UPDATE;
+  IF NOT found THEN
+    RAISE EXCEPTION 'That stock does not exist.'
+      USING errcode = 'P5507';
+  END IF;
+  -- changing stock to low or in stock means the order arrived, so ordered is cleared;
+  -- otherwise keep the first ordered time, or clear it when not ordered
+  UPDATE
+    public.stocks
+  SET
+    status = p_status,
+    ordered_at = CASE WHEN old_status = 'out'
+      AND p_status <> 'out' THEN
+      NULL
+    WHEN p_ordered THEN
+      coalesce(ordered_at, now())
+    ELSE
+      NULL
+    END
+  WHERE
+    id = p_stock_id;
+  -- moving a stock into 'out of stock' or out of 'out of stock' changes the ability
+  -- to make parts made from the stock
+  -- each update sets the member who changed the status, so each part gets its history event
+  IF p_status = 'out' AND old_status <> 'out' THEN
+    UPDATE
+      public.parts
+    SET
+      status = 'waiting_on_order',
+      status_changed_by_id = p_member_id
+    WHERE
+      stock_id = p_stock_id
+      AND status = 'ready'
+      AND deprecated_at IS NULL;
+    GET DIAGNOSTICS moved = ROW_COUNT;
+  ELSIF old_status = 'out'
+      AND p_status <> 'out' THEN
+      UPDATE
+        public.parts
+      SET
+        status = 'ready',
+        status_changed_by_id = p_member_id
+      WHERE
+        stock_id = p_stock_id
+        AND status = 'waiting_on_order'
+        AND deprecated_at IS NULL;
+    GET DIAGNOSTICS moved = ROW_COUNT;
+  END IF;
+  -- update stock history only if/when something changed
+  INSERT INTO public.stock_status_events(stock_id, status, ordered, parts_moved, member_id)
+  SELECT
+    s.id,
+    s.status,
+    s.ordered_at IS NOT NULL,
+    moved,
+    p_member_id
+  FROM
+    public.stocks s
+  WHERE
+    s.id = p_stock_id
+    AND (s.status <> old_status
+      OR (s.ordered_at IS NOT NULL) <> old_ordered);
+  RETURN moved;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.set_stock(bigint, public.stock_status, boolean, bigint) FROM public, anon;
+
+GRANT EXECUTE ON FUNCTION public.set_stock(bigint, public.stock_status, boolean, bigint) TO authenticated;
+
+-- any part exported while required stock IS 'out of stock' has 'waiting on order' status
+-- security definer needed so the stock is always readable: if the caller couldn't
+-- see it, the part would silently start as ready
+CREATE FUNCTION private.set_status_from_stock()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = ''
+  AS $$
+BEGIN
+  IF NEW.status = 'ready' AND EXISTS(
+    SELECT
+      1
+    FROM
+      public.stocks
+    WHERE
+      id = NEW.stock_id AND status = 'out') THEN
+    NEW.status := 'waiting_on_order';
+END IF;
+
+RETURN NEW;
+
+END;
+
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.set_status_from_stock() FROM public, anon, authenticated;
+
+CREATE TRIGGER set_status_from_stock
+  BEFORE INSERT ON public.parts
+  FOR EACH ROW
+  EXECUTE FUNCTION private.set_status_from_stock();
+
 -- rls policies
 -- admin
 -- robots
@@ -1080,6 +1311,12 @@ CREATE POLICY "Members can update parts" ON public.parts
     SELECT
       private.is_member()));
 
+CREATE POLICY "Members can read stock status events" ON public.stock_status_events
+  FOR SELECT TO authenticated
+  USING ((
+    SELECT
+      private.is_member()));
+
 -- buckets
 -- creates private bucket for exported part files
 -- webhook uploads with admin client
@@ -1093,29 +1330,29 @@ ON CONFLICT (id)
     file_size_limit = excluded.file_size_limit;
 
 -- reference data
-INSERT INTO public.materials(code, label)
+INSERT INTO public.materials(code, label, category)
 VALUES
-  ('srpp', 'SRPP'),
-('polycarbonate', 'Polycarbonate'),
-('wood', 'Plywood'),
-('al6061', 'Aluminum 6061'),
-('al7075', 'Aluminum 7075'),
-('al5052', 'Aluminum 5052'),
-('tpu', 'TPU (95A)'),
-('petg', 'PETG'),
-('pla', 'PLA+'),
-('nylon', 'NYLON'),
-('onyx', 'Onyx (Markforged Only)'),
-('tube_2x1_7075', '2x1 7075 (black)'),
-('tube_2x1_punched', '2x1 Punched'),
-('tube_2x1_blank', '2x1 Blank'),
-('tube_1x1_punched', '1x1 Punched'),
-('tube_1x1_blank', '1x1 Blank'),
-('maxtube_2x1', '2x1 Maxtube'),
-('maxtube_1x1', '1x1 Maxtube'),
-('alu_maxspline', 'Maxspline'),
-('poly_maxspline', 'Polycarbonate Maxspline'),
-('hex_0500_159', '1/2" Hex (WCP)');
+  ('srpp', 'SRPP', 'plate'),
+('polycarbonate', 'Polycarbonate', 'plate'),
+('wood', 'Plywood', 'plate'),
+('al6061', 'Aluminum 6061', 'plate'),
+('al7075', 'Aluminum 7075', 'plate'),
+('al5052', 'Aluminum 5052', 'plate'),
+('tpu', 'TPU (95A)', 'filament'),
+('petg', 'PETG', 'filament'),
+('pla', 'PLA+', 'filament'),
+('nylon', 'NYLON', 'filament'),
+('onyx', 'Onyx (Markforged Only)', 'filament'),
+('tube_2x1_7075', '2x1 7075 (black)', 'tube'),
+('tube_2x1_punched', '2x1 Punched', 'tube'),
+('tube_2x1_blank', '2x1 Blank', 'tube'),
+('tube_1x1_punched', '1x1 Punched', 'tube'),
+('tube_1x1_blank', '1x1 Blank', 'tube'),
+('maxtube_2x1', '2x1 Maxtube', 'tube'),
+('maxtube_1x1', '1x1 Maxtube', 'tube'),
+('alu_maxspline', 'Maxspline', 'shaft'),
+('poly_maxspline', 'Polycarbonate Maxspline', 'shaft'),
+('hex_0500_159', '1/2" Hex (WCP)', 'shaft');
 
 INSERT INTO public.stocks(material_id, thickness_in)
 SELECT
