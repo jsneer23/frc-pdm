@@ -1,3 +1,4 @@
+import { type FilterOption, splitList, textParam } from "@/lib/searchParams";
 import type { QueuePart } from "./queries";
 import { type PartStatus, STATUS_ORDER } from "./status";
 
@@ -16,39 +17,18 @@ export type QueueSearch = {
 
 export const DEFAULT_STATUSES: PartStatus[] = ["ready", "in_progress"];
 
-// TanStack Router reads values that look like JSON as JSON ("123" becomes a
-// number), so accept numbers too and turn them back into text
-function text(value: unknown): string | undefined {
-	if (typeof value === "string") {
-		return value;
-	}
-	if (typeof value === "number") {
-		return String(value);
-	}
-	return undefined;
-}
-
 // turns whatever is in the URL into clean filters; anything else is dropped
 export function validateQueueSearch(
 	search: Record<string, unknown>,
 ): QueueSearch {
 	return {
-		robot: text(search.robot),
-		q: text(search.q),
-		subsystem: text(search.subsystem),
-		machine: text(search.machine),
-		material: text(search.material),
-		status: text(search.status),
+		robot: textParam(search.robot),
+		q: textParam(search.q),
+		subsystem: textParam(search.subsystem),
+		machine: textParam(search.machine),
+		material: textParam(search.material),
+		status: textParam(search.status),
 	};
-}
-
-export function splitList(value: string | undefined): string[] {
-	return value ? value.split(",").filter(Boolean) : [];
-}
-
-// an empty list is "all", which is the default, so it leaves the URL
-export function joinList(values: string[]): string | undefined {
-	return values.length > 0 ? values.join(",") : undefined;
 }
 
 export function statusesFrom(value: string | undefined): PartStatus[] {
@@ -105,8 +85,6 @@ export function filterParts(
 				part.part_number.toLowerCase().includes(f.q)),
 	);
 }
-
-export type FilterOption = { value: string; label: string };
 
 // the choices for a menu, taken from the robot's parts: each code once,
 // sorted by its label

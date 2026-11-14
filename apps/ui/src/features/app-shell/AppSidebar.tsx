@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { ListTodo, LogOut } from "lucide-react";
+import { Boxes, ListTodo, LogOut } from "lucide-react";
 import type { ComponentProps } from "react";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,10 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useSession } from "../auth/sessionContext";
 
-const NAV_ITEMS = [{ title: "Queue", to: "/", icon: ListTodo }] as const;
+const NAV_ITEMS = [
+	{ title: "Queue", to: "/", icon: ListTodo },
+	{ title: "Inventory", to: "/inventory", icon: Boxes },
+] as const;
 
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
 	const matchRoute = useMatchRoute();

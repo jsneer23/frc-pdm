@@ -1,108 +1,34 @@
 import { ChevronDown } from "lucide-react";
+import { FilterMenu } from "@/components/FilterMenu";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
-	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
-	DropdownMenuItem,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import {
+	ACTIVE_FILTER,
 	type FilterOption,
 	joinList,
+	splitList,
+} from "@/lib/searchParams";
+import { cn } from "@/lib/utils";
+import {
 	optionsFrom,
 	type QueueSearch,
-	splitList,
 	statusesFrom,
 	statusParam,
 } from "./filters";
 import type { QueuePart, Robot } from "./queries";
 import { type PartStatus, STATUS_BADGE, STATUS_ORDER } from "./status";
 
-// a filter that differs from its default gets the tinted look, so you can
-// see at a glance what's narrowing the list
-const ACTIVE = "border-primary/30 bg-primary/10 text-primary";
-
 const STATUS_OPTIONS: FilterOption[] = STATUS_ORDER.map((status) => ({
 	value: status,
 	label: STATUS_BADGE[status].label,
 }));
-
-type FilterMenuProps = {
-	label: string;
-	options: FilterOption[];
-	selected: string[];
-	onChange: (values: string[]) => void;
-	active: boolean;
-};
-
-// a multi-select dropdown: no selection means "all"
-function FilterMenu({
-	label,
-	options,
-	selected,
-	onChange,
-	active,
-}: FilterMenuProps) {
-	let summary = "All";
-	if (selected.length === 1) {
-		summary =
-			options.find((option) => option.value === selected[0])?.label ??
-			selected[0];
-	} else if (selected.length > 1) {
-		summary = String(selected.length);
-	}
-
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger
-				render={
-					<Button
-						variant="outline"
-						size="sm"
-						className={cn(active && ACTIVE)}
-					/>
-				}
-			>
-				{label}: {summary}
-				<ChevronDown className="opacity-50" />
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-56">
-				{options.length === 0 && (
-					<DropdownMenuItem disabled>Nothing to choose yet</DropdownMenuItem>
-				)}
-				{options.map((option) => (
-					<DropdownMenuCheckboxItem
-						key={option.value}
-						checked={selected.includes(option.value)}
-						onCheckedChange={(checked) =>
-							onChange(
-								checked
-									? [...selected, option.value]
-									: selected.filter((value) => value !== option.value),
-							)
-						}
-					>
-						{option.label}
-					</DropdownMenuCheckboxItem>
-				))}
-				{selected.length > 0 && (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={() => onChange([])}>
-							Show all
-						</DropdownMenuItem>
-					</>
-				)}
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
-}
 
 type FilterBarProps = {
 	robots: Robot[];
@@ -151,7 +77,7 @@ export function FilterBar({
 						<Button
 							variant="outline"
 							size="sm"
-							className={cn(robotCode !== newestRobot && ACTIVE)}
+							className={cn(robotCode !== newestRobot && ACTIVE_FILTER)}
 						/>
 					}
 				>

@@ -47,14 +47,14 @@ isOneToOne: false
                   ]
                 },"materials": {
                   Row: {
-                    "code": string,"created_at": string,"id": number,"label": string
+                    "category": Database["public"]['Enums']["material_category"],"code": string,"created_at": string,"id": number,"label": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "code": string,"created_at"?: string,"id"?: never,"label": string
+                    "category": Database["public"]['Enums']["material_category"],"code": string,"created_at"?: string,"id"?: never,"label": string
                   }
                   Update: {
-                    "code"?: string,"created_at"?: string,"id"?: never,"label"?: string
+                    "category"?: Database["public"]['Enums']["material_category"],"code"?: string,"created_at"?: string,"id"?: never,"label"?: string
                   }
                   Relationships: [
                     
@@ -189,6 +189,12 @@ isOneToOne: false
       foreignKeyName: "parts_stock_id_fkey"
       columns: ["stock_id"]
 isOneToOne: false
+      referencedRelation: "stock_inventory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
       referencedRelation: "stocks"
       referencedColumns: ["id"]
     },{
@@ -231,16 +237,48 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
-                },"stocks": {
+                },"stock_status_events": {
                   Row: {
-                    "created_at": string,"id": number,"material_id": number,"thickness_in": number | null
+                    "changed_at": string,"id": number,"member_id": number,"ordered": boolean,"parts_moved": number,"status": Database["public"]['Enums']["stock_status"],"stock_id": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: never,"material_id": number,"thickness_in"?: number | null
+                    "changed_at"?: string,"id"?: never,"member_id": number,"ordered": boolean,"parts_moved"?: number,"status": Database["public"]['Enums']["stock_status"],"stock_id": number
                   }
                   Update: {
-                    "created_at"?: string,"id"?: never,"material_id"?: number,"thickness_in"?: number | null
+                    "changed_at"?: string,"id"?: never,"member_id"?: number,"ordered"?: boolean,"parts_moved"?: number,"status"?: Database["public"]['Enums']["stock_status"],"stock_id"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_status_events_member_id_fkey"
+      columns: ["member_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stock_status_events_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
+      referencedRelation: "stock_inventory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stock_status_events_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
+      referencedRelation: "stocks"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"stocks": {
+                  Row: {
+                    "created_at": string,"id": number,"material_id": number,"ordered_at": string | null,"status": Database["public"]['Enums']["stock_status"],"thickness_in": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: never,"material_id": number,"ordered_at"?: string | null,"status"?: Database["public"]['Enums']["stock_status"],"thickness_in"?: number | null
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: never,"material_id"?: number,"ordered_at"?: string | null,"status"?: Database["public"]['Enums']["stock_status"],"thickness_in"?: number | null
                   }
                   Relationships: [
                     {
@@ -314,6 +352,12 @@ isOneToOne: false
       foreignKeyName: "parts_stock_id_fkey"
       columns: ["stock_id"]
 isOneToOne: false
+      referencedRelation: "stock_inventory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
       referencedRelation: "stocks"
       referencedColumns: ["id"]
     },{
@@ -382,6 +426,12 @@ isOneToOne: false
       foreignKeyName: "parts_stock_id_fkey"
       columns: ["stock_id"]
 isOneToOne: false
+      referencedRelation: "stock_inventory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parts_stock_id_fkey"
+      columns: ["stock_id"]
+isOneToOne: false
       referencedRelation: "stocks"
       referencedColumns: ["id"]
     },{
@@ -410,13 +460,23 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"stock_inventory": {
+                  Row: {
+                    "category": Database["public"]['Enums']["material_category"] | null,"id": number | null,"last_change_at": string | null,"last_change_by": string | null,"material_code": string | null,"material_label": string | null,"ordered_at": string | null,"parts_in_progress": number | null,"parts_ready": number | null,"parts_waiting": number | null,"status": Database["public"]['Enums']["stock_status"] | null,"thickness_in": number | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Functions: {
-            [_ in never]: never
+            "set_stock":
+{ Args: { "p_member_id": number,"p_ordered": boolean,"p_status": Database["public"]['Enums']["stock_status"],"p_stock_id": number }; Returns: number
+                           }
           }
           Enums: {
-            "export_format": "dwg"|"dxf"|"step","export_status": "exporting"|"done"|"failed","part_kind": "face"|"body","part_status": "waiting_on_order"|"ready"|"in_progress"|"completed","robot_kind": "alpha"|"beta"|"competition"|"offseason"
+            "export_format": "dwg"|"dxf"|"step","export_status": "exporting"|"done"|"failed","material_category": "plate"|"tube"|"shaft"|"filament","part_kind": "face"|"body","part_status": "waiting_on_order"|"ready"|"in_progress"|"completed","robot_kind": "alpha"|"beta"|"competition"|"offseason","stock_status": "in_stock"|"low"|"out"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -532,7 +592,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "export_format": ["dwg", "dxf", "step"],"export_status": ["exporting", "done", "failed"],"part_kind": ["face", "body"],"part_status": ["waiting_on_order", "ready", "in_progress", "completed"],"robot_kind": ["alpha", "beta", "competition", "offseason"]
+            "export_format": ["dwg", "dxf", "step"],"export_status": ["exporting", "done", "failed"],"material_category": ["plate", "tube", "shaft", "filament"],"part_kind": ["face", "body"],"part_status": ["waiting_on_order", "ready", "in_progress", "completed"],"robot_kind": ["alpha", "beta", "competition", "offseason"],"stock_status": ["in_stock", "low", "out"]
           }
         }
 } as const

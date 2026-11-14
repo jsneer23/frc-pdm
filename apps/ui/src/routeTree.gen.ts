@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as OnshapeRouteImport } from './routes/onshape'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppInventoryRouteImport } from './routes/_app/inventory'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -27,27 +28,35 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppInventoryRoute = AppInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/onshape': typeof OnshapeRoute
+  '/inventory': typeof AppInventoryRoute
 }
 export interface FileRoutesByTo {
   '/onshape': typeof OnshapeRoute
+  '/inventory': typeof AppInventoryRoute
   '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/onshape': typeof OnshapeRoute
+  '/_app/inventory': typeof AppInventoryRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/onshape'
+  fullPaths: '/' | '/onshape' | '/inventory'
   fileRoutesByTo: FileRoutesByTo
-  to: '/onshape' | '/'
-  id: '__root__' | '/_app' | '/onshape' | '/_app/'
+  to: '/onshape' | '/inventory' | '/'
+  id: '__root__' | '/_app' | '/onshape' | '/_app/inventory' | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -78,14 +87,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/inventory': {
+      id: '/_app/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof AppInventoryRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
 interface AppRouteRouteChildren {
+  AppInventoryRoute: typeof AppInventoryRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppInventoryRoute: AppInventoryRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
